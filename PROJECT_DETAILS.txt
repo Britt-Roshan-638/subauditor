@@ -1,0 +1,215 @@
+================================================================================
+                        SUBAUDITOR - PROJECT DETAILS
+================================================================================
+
+PROJECT: SubAuditor — Track & Audit Your Subscriptions
+FRAMEWORK: Next.js 14.2.35 + React 18 + TypeScript
+DATABASE: SQLite (via Prisma ORM)
+AUTH: NextAuth (Credentials + Google OAuth)
+STYLING: Tailwind CSS + shadcn/ui + Radix UI
+PAYMENT: Stripe
+BANK LINK: Plaid
+
+================================================================================
+LOCAL PATH
+================================================================================
+
+C:\Users\Britt Roshan\subauditor\
+
+================================================================================
+SERVER DETAILS
+================================================================================
+
+URL:            http://localhost:3000
+Port:           3000
+PID:            3976
+Database:       SQLite (prisma/dev.db)
+Node.js:        v24.16.0
+Package Manager: npm (213 packages installed)
+
+================================================================================
+LOGIN CREDENTIALS
+================================================================================
+
+Email:          test@subauditor.com
+Password:       Test1234!
+
+================================================================================
+PROJECT STRUCTURE
+================================================================================
+
+C:\Users\Britt Roshan\subauditor\
+├── .env                          # Environment config (SQLite, NextAuth, etc.)
+├── .env.example                  # Template
+├── .gitignore
+├── middleware.ts                 # NextAuth middleware (protects /dashboard, /settings, /onboarding)
+├── next.config.js                # Next.js config (bcryptjs external package)
+├── package.json                  # 213 packages
+├── package-lock.json
+├── PLAN.md                       # Project plan
+├── postcss.config.js             # PostCSS (Tailwind + Autoprefixer)
+├── tailwind.config.js            # Tailwind (shadcn/ui theme)
+├── tsconfig.json                 # TypeScript config
+│
+├── app/
+│   ├── globals.css               # Tailwind base + CSS variables
+│   ├── layout.tsx                # Root layout
+│   ├── page.tsx                  # Landing page (Hero, Features, Pricing, Footer)
+│   │
+│   ├── api/
+│   │   └── auth/
+│   │       ├── [...nextauth]/route.ts   # NextAuth catch-all (login, callback, etc.)
+│   │       ├── login/route.ts
+│   │       ├── me/route.ts
+│   │       └── register/route.ts
+│   │
+│   ├── dashboard/page.tsx        # Protected dashboard
+│   ├── login/page.tsx            # Login page
+│   ├── onboarding/page.tsx       # Protected onboarding
+│   ├── pricing/page.tsx          # Pricing page
+│   ├── register/page.tsx         # Register page
+│   └── settings/page.tsx         # Protected settings
+│
+├── components/
+│   ├── auth-provider.tsx
+│   ├── header.tsx
+│   ├── stats-card.tsx
+│   ├── subscription-card.tsx
+│   ├── landing/                  # Hero, Features, Pricing, Footer
+│   └── ui/                       # shadcn/ui (button, card, dialog, input, etc.)
+│
+├── hooks/
+├── lib/
+│   ├── auth.ts                   # NextAuth config (Credentials + Google OAuth)
+│   ├── plaid.ts                  # Plaid API client
+│   ├── prisma.ts                 # PrismaClient singleton
+│   ├── stripe.ts                 # Stripe client
+│   ├── subscription-detector.ts  # Recurring transaction detection
+│   └── utils.ts                  # cn(), formatCurrency(), formatDate()
+│
+├── prisma/
+│   ├── dev.db                    # SQLite database (local)
+│   └── schema.prisma             # 8 models (User, Account, Session, etc.)
+│
+├── public/
+└── types/
+    ├── css.d.ts
+    └── next-auth.d.ts
+
+================================================================================
+DATABASE MODELS (Prisma Schema)
+================================================================================
+
+1. User           - id, email, name, password, plan, stripeCustomerId, emailVerified, image
+2. Account        - id, userId, type, provider, providerAccountId, refresh_token, access_token
+3. Session        - id, sessionToken, userId, expires
+4. VerificationToken - identifier, token, expires
+5. PlaidAccount   - id, userId, plaidAccessToken, plaidItemId, institutionName
+6. Subscription   - id, userId, name, amount, currency, frequency, category, status, plaidTransactionId
+7. Transaction    - id, userId, accountId, amount, date, name, category, plaidTransactionId
+8. PriceChange    - id, subscriptionId, oldAmount, newAmount, detectedAt
+
+================================================================================
+ROUTES
+================================================================================
+
+STATIC PAGES (prerendered):
+  /                   Landing page (Hero, Features, Pricing, Footer)
+  /login              Login page
+  /register           Registration page
+  /pricing            Pricing page
+  /dashboard          Protected dashboard
+  /onboarding         Protected onboarding
+  /settings           Protected settings
+
+API ROUTES (dynamic):
+  /api/auth/[...nextauth]   NextAuth catch-all (signin, signout, callback, session)
+  /api/auth/login           Login endpoint
+  /api/auth/me              Current user endpoint
+  /api/auth/register        Registration endpoint
+  /api/plaid/exchange       Exchange Plaid public token
+  /api/plaid/link-token     Create Plaid link token
+  /api/plaid/sync           Sync Plaid transactions
+  /api/stripe/checkout      Create Stripe checkout session
+  /api/stripe/portal        Stripe customer portal
+  /api/subscriptions        List subscriptions
+  /api/subscriptions/stats  Subscription statistics
+  /api/subscriptions/[id]   Single subscription
+  /api/transactions         List transactions
+  /api/webhooks/stripe      Stripe webhook handler
+
+================================================================================
+ENVIRONMENT VARIABLES (.env)
+================================================================================
+
+DATABASE_URL="file:./dev.db"
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="change-me-to-a-real-secret-change-this"
+GOOGLE_CLIENT_ID=""
+GOOGLE_CLIENT_SECRET=""
+PLAID_CLIENT_ID="your-plaid-client-id"
+PLAID_SECRET="your-plaid-secret"
+PLAID_ENV="sandbox"
+STRIPE_SECRET_KEY=""
+STRIPE_WEBHOOK_SECRET=""
+STRIPE_PRICE_MONTHLY=""
+STRIPE_PRICE_ANNUAL=""
+
+================================================================================
+KEY DEPENDENCIES
+================================================================================
+
+next@14.2.35              Next.js framework
+react@18 / react-dom@18   UI library
+typescript@5              Type safety
+@prisma/client@5.22.0     ORM for database
+prisma@5.22.0              Prisma CLI
+next-auth@4               Authentication
+@auth/prisma-adapter      Prisma adapter for NextAuth
+bcryptjs                  Password hashing
+stripe@latest             Payment processing
+plaid@latest              Bank account linking
+tailwindcss@3             Utility-first CSS
+postcss / autoprefixer    CSS processing
+@radix-ui/*               UI primitives (slot, avatar, dialog, dropdown, toast, label)
+class-variance-authority  Component variants
+clsx / tailwind-merge     Class utilities
+lucide-react              Icons
+zod                       Validation
+
+================================================================================
+SETUP COMMANDS USED
+================================================================================
+
+1. npm install            - Installed 213 packages
+2. npx prisma generate    - Generated Prisma Client for SQLite
+3. npx prisma db push     - Created SQLite database (dev.db)
+4. npx next build         - Production build (22 pages generated)
+5. npx next start -p 3000 - Started production server
+
+================================================================================
+MIDDLEWARE PROTECTION
+================================================================================
+
+Protected routes (require authentication):
+  /dashboard/*
+  /onboarding/*
+  /settings/*
+
+Public routes:
+  / (landing)
+  /login
+  /register
+  /pricing
+
+================================================================================
+NOTES
+================================================================================
+
+- Database was switched from PostgreSQL to SQLite for local development
+- Test user created directly in SQLite database with bcrypt-hashed password
+- Production build used (next start) instead of dev server (next dev)
+  because dev server had issues with native module hot-reload
+- PostgreSQL was installed at C:\Program Files\PostgreSQL\16 but not used
+- The [...nextauth] catch-all route was accidentally disabled during debugging
+  and had to be restored for auth to work
