@@ -13,12 +13,23 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { publicToken } = body;
 
-    if (!publicToken) {
+    // Validate publicToken
+    if (!publicToken || typeof publicToken !== 'string' || publicToken.trim() === '') {
       return NextResponse.json(
-        { error: "publicToken is required" },
+        { error: "publicToken is required and must be a non-empty string" },
         { status: 400 }
       );
     }
+    // Optional: Plaid public tokens are typically longer, but we'll just trim and check length > 10 as a basic check
+    if (publicToken.trim().length < 10) {
+      return NextResponse.json(
+        { error: "publicToken appears to be invalid" },
+        { status: 400 }
+      );
+    }
+
+    // TODO: Implement rate limiting (e.g., max 5 attempts per hour per user)
+    // For production, consider using a Redis-based rate limiter or Vercel Edge Middleware
 
     const { accessToken, itemId } = await exchangePublicToken(
       publicToken,
@@ -32,6 +43,7 @@ export async function POST(request: NextRequest) {
     // Store the Plaid account in the database
     const plaidAccount = await prisma.plaidAccount.create({
       data: {
+        id: crypto.randomUUID(),
         userId: session.user.id,
         plaidAccessToken: accessToken,
         plaidItemId: itemId,

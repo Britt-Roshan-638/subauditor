@@ -103,7 +103,7 @@ export function Hero() {
               <Button
                 variant="ghost"
                 size="lg"
-                className="h-12 w-full px-6 text-base gap-2 sm:w-auto text-foreground/80 hover:text-foreground"
+                className="h-12 w-full px-6 text-base gap-2 sm:w-auto text-foreground/90 hover:text-foreground"
               >
                 <PlayCircle className="h-4 w-4" />
                 See how it works

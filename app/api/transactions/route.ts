@@ -10,8 +10,21 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get('limit') || '50', 10);
-    const offset = parseInt(searchParams.get('offset') || '0', 10);
+    // Validate and clamp limit and offset to prevent excessive resource usage
+    let limit = parseInt(searchParams.get('limit') || '50', 10);
+    let offset = parseInt(searchParams.get('offset') || '0', 10);
+
+    // Ensure limit is between 1 and 100
+    if (isNaN(limit) || limit < 1) {
+      limit = 50; // default
+    } else if (limit > 100) {
+      limit = 100; // max
+    }
+
+    // Ensure offset is non-negative
+    if (isNaN(offset) || offset < 0) {
+      offset = 0;
+    }
 
     const transactions = await prisma.transaction.findMany({
       where: { userId: session.user.id },

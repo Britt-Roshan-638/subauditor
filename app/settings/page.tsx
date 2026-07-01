@@ -1,17 +1,17 @@
-"use client";
-
 // app/settings/page.tsx — account, bank, billing.
+
+"use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Header } from "@/components/header";
-import { Landmark, LogOut, Check, RefreshCcw } from "lucide-react";
+import { Landmark, LogOut, Check, RefreshCcw, CreditCard, Banknote } from "lucide-react";
 
 interface UserProfile {
   name: string;
   email: string;
   plan: string;
-  stripeCustomerId: string | null;
+  razorpayCustomerId: string | null;
 }
 
 interface BankAccount {
@@ -109,23 +109,44 @@ export default function SettingsPage() {
             )}
           </Section>
 
-          {/* Plan */}
-          <Section title="Plan">
+          {/* Billing */}
+          <Section title="Billing">
             <div className="flex items-center justify-between rounded-2xl border border-border bg-card/40 p-5">
               <div>
                 <div className="text-sm font-medium">
-                  {user?.plan === "pro" ? "Pro · $7/mo" : "Auditor · Free"}
+                  {user?.plan === "pro" ? "Pro Plan" : "Auditor — Free"}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   {user?.plan === "pro"
                     ? "You have unlimited access to all Pro features."
                     : "You are on the free plan — up to 5 subscriptions."}
                 </p>
+
+                {/* Show Razorpay customer info if available */}
+                {user?.razorpayCustomerId && (
+                  <div className="mt-3 pt-3 border-t border-border/50">
+                    <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="h-4 w-4" />
+                        <span>Customer ID:</span>
+                        <span className="font-mono">{user.razorpayCustomerId}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Banknote className="h-4 w-4" />
+                        <span>Billing cycle:</span>
+                        <span>Monthly</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
               {user?.plan === "pro" ? (
-                <button className="chip-mono text-[11px] text-muted-foreground hover:text-foreground">
-                  MANAGE BILLING
-                </button>
+                <Link
+                  href="/api/razorpay/portal"
+                  className="rounded-lg bg-gradient-to-br from-violet to-violet-dim px-4 py-2 text-xs font-medium text-primary-foreground shadow-[0_18px_60px_-12px_rgba(167,139,250,0.45)] hover:opacity-95"
+                >
+                  MANAGE SUBSCRIPTION
+                </Link>
               ) : (
                 <Link
                   href="/pricing"

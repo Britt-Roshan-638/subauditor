@@ -1,8 +1,11 @@
-// app/dashboard/page.tsx — main subscriber dashboard with mock data visualization.
+// app/dashboard/page.tsx — main subscriber dashboard with real data from database.
+
+"use client";
 
 import { Header } from "@/components/header";
 import { StatsCard } from "@/components/stats-card";
 import { SubscriptionCard } from "@/components/subscription-card";
+import { HistoryCard } from "@/components/history-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -13,95 +16,84 @@ import {
   Landmark,
   Plus,
   Sparkles,
+  TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
-
-const mockSubscriptions = [
-  {
-    id: "1",
-    name: "Netflix",
-    amount: 15.49,
-    frequency: "monthly" as const,
-    category: "Entertainment",
-    lastChargeDate: "2026-06-01",
-    nextChargeDate: "2026-07-01",
-    status: "active" as const,
-  },
-  {
-    id: "2",
-    name: "Spotify",
-    amount: 9.99,
-    frequency: "monthly" as const,
-    category: "Music",
-    lastChargeDate: "2026-06-15",
-    nextChargeDate: "2026-07-15",
-    status: "active" as const,
-  },
-  {
-    id: "3",
-    name: "Adobe Creative Cloud",
-    amount: 54.99,
-    frequency: "monthly" as const,
-    category: "Productivity",
-    lastChargeDate: "2026-06-10",
-    nextChargeDate: "2026-07-10",
-    status: "active" as const,
-  },
-  {
-    id: "4",
-    name: "Gym Membership",
-    amount: 29.99,
-    frequency: "monthly" as const,
-    category: "Health",
-    lastChargeDate: "2026-05-20",
-    nextChargeDate: "2026-06-20",
-    status: "inactive" as const,
-  },
-  {
-    id: "5",
-    name: "Hulu",
-    amount: 12.99,
-    frequency: "monthly" as const,
-    category: "Entertainment",
-    lastChargeDate: "2026-04-01",
-    nextChargeDate: "2026-05-01",
-    status: "cancelled" as const,
-  },
-  {
-    id: "6",
-    name: "AWS",
-    amount: 42.5,
-    frequency: "monthly" as const,
-    category: "Productivity",
-    lastChargeDate: "2026-06-05",
-    nextChargeDate: "2026-07-05",
-    status: "active" as const,
-  },
-  {
-    id: "7",
-    name: "New York Times",
-    amount: 17.0,
-    frequency: "monthly" as const,
-    category: "News",
-    lastChargeDate: "2026-06-12",
-    nextChargeDate: "2026-07-12",
-    status: "trial" as const,
-  },
-];
-
-const bankConnected = true;
+import { useEffect, useState } from "react";
 
 export default function DashboardPage() {
-  const totalMonthly = mockSubscriptions
-    .filter((s) => s.status === "active")
-    .reduce((sum, s) => sum + s.amount, 0);
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState<any>(null);
 
-  const activeCount = mockSubscriptions.filter(
-    (s) => s.status === "active"
-  ).length;
+  useEffect(() => {
+    async function fetchDashboardData() {
+      try {
+        setIsLoading(true);
 
-  const wasteScore = 34;
-  const potentialSavings = 89.0;
+        // Fetch subscriptions
+        const subsResponse = await fetch("/api/subscriptions");
+        if (!subsResponse.ok) {
+          throw new Error(`Failed to fetch subscriptions: ${subsResponse.status}`);
+        }
+        const subsData = await subsResponse.json();
+
+        // Fetch stats
+        const statsResponse = await fetch("/api/subscriptions/stats");
+        if (!statsResponse.ok) {
+          throw new Error(`Failed to fetch stats: ${statsResponse.status}`);
+        }
+        const statsData = await statsResponse.json();
+
+        setSubscriptions(subsData.subscriptions || []);
+        setStats(statsData);
+      } catch (err) {
+        console.error("Failed to fetch dashboard data:", err);
+        setError(err instanceof Error ? err.message : "Unknown error");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchDashboardData();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen">
+        <Header />
+        <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4" />
+            <p className="text-muted-foreground">Loading your subscriptions...</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen">
+        <Header />
+        <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center py-12">
+            <p className="text-destructive">Failed to load dashboard: {error}</p>
+            <Button onClick={() => window.location.reload()}>
+              Retry
+            </Button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Calculate values from subscriptions or use stats
+  const totalMonthly = stats?.totalMonthlySpend || 0;
+  const activeCount = stats?.totalSubscriptions || subscriptions.filter((s: any) => s.status === "active").length;
+  const wasteScore = stats?.wasteScore || 0;
+  const potentialSavings = stats?.potentialSavings || 0;
 
   return (
     <div className="min-h-screen">
@@ -112,7 +104,7 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-10">
           <div>
             <div className="chip-mono text-[11px] text-muted-foreground">
-              YOUR SUBSCRIPTIONS · JUNE 2026
+              YOUR SUBSCRIPTIONS • {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
             </div>
             <h1 className="mt-3 font-display text-4xl tracking-tightest sm:text-5xl">
               Hello, <em className="not-italic text-gradient-violet">Auditor</em>.
@@ -124,7 +116,9 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            {bankConnected ? (
+            {/* Check if user has connected bank accounts (Plaid accounts) */}
+            {/* For now, we'll show connected if we have any subscriptions (could be improved with a dedicated API call) */}
+            {subscriptions.length > 0 ? (
               <Button variant="outline" className="gap-2 border-emerald-400/30 bg-emerald-400/5 text-emerald-400 hover:bg-emerald-400/10 hover:text-emerald-300">
                 <span className="relative flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" />
@@ -182,54 +176,85 @@ export default function DashboardPage() {
         </div>
 
         {/* Subscriptions list */}
-        <Card className="overflow-hidden border-border bg-card/30">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-border/50">
-            <div>
-              <CardTitle className="font-display text-2xl tracking-tightest">
-                Subscriptions
-              </CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                Sorted by monthly cost, descending.
-              </p>
-            </div>
-            <Button size="sm" variant="outline" className="gap-2 border-border">
-              <Plus className="h-4 w-4" />
-              Add manual
-            </Button>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="divide-y divide-border/50">
-              {mockSubscriptions
-                .slice()
-                .sort((a, b) => b.amount - a.amount)
-                .map((subscription) => (
-                  <div key={subscription.id} className="px-4 sm:px-6">
-                    <SubscriptionCard subscription={subscription} />
-                  </div>
-                ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Insight card */}
-        <Card className="mt-8 overflow-hidden border-primary/30 bg-gradient-to-br from-violet/10 via-violet/5 to-transparent">
-          <CardContent className="p-6 sm:p-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="chip-mono text-[11px] text-primary">
-                <Sparkles className="mr-1.5 inline h-3 w-3" /> INSIGHT
+        {subscriptions.length > 0 ? (
+          <Card className="overflow-hidden border-border bg-card/30">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-border/50">
+              <div>
+                <CardTitle className="font-display text-2xl tracking-tightest">
+                  Subscriptions
+                </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Sorted by monthly cost, descending.
+                </p>
               </div>
-              <h3 className="mt-2 font-display text-xl tracking-tightest">
-                You could save <span className="text-gradient-violet">$89/mo</span> by
-                canceling two unused subscriptions.
-              </h3>
-            </div>
-            <Link href="/settings">
-              <Button className="gap-2 bg-gradient-to-br from-violet to-violet-dim text-primary-foreground shadow-[0_18px_60px_-12px_rgba(167,139,250,0.45)]">
-                Review waste
+              <Button size="sm" variant="outline" className="gap-2 border-border">
+                <Plus className="h-4 w-4" />
+                Add manual
               </Button>
-            </Link>
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-border/50">
+                {subscriptions
+                  .slice()
+                  .sort((a: any, b: any) => {
+                    // Normalize to monthly for sorting
+                    const freqMultiplier = (freq: string) => {
+                      if (freq === "weekly") return 4.33; // weeks per month
+                      if (freq === "yearly") return 1 / 12; // months per year
+                      return 1; // monthly or other
+                    };
+                    const monthlyA = a.amount * freqMultiplier(a.frequency);
+                    const monthlyB = b.amount * freqMultiplier(b.frequency);
+                    return monthlyB - monthlyA;
+                  })
+                  .map((subscription: any) => (
+                    <div key={subscription.id} className="px-4 sm:px-6">
+                      <SubscriptionCard subscription={subscription} />
+                      {subscription.PriceChange?.length > 0 && (
+                        <div className="pb-4">
+                          <HistoryCard
+                            priceChanges={subscription.PriceChange}
+                            subscriptionName={subscription.name}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="mt-8 overflow-hidden border-border bg-card/30">
+            <CardContent className="p-6 text-center">
+              <p className="text-muted-foreground">No subscriptions found. Connect your bank account to start tracking.</p>
+              <Link href="/onboarding">
+                <Button className="mt-4">Connect Bank Account</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Insight card - only show if we have data */}
+        {subscriptions.length > 0 && (
+          <Card className="mt-8 overflow-hidden border-primary/30 bg-gradient-to-br from-violet/10 via-violet/5 to-transparent">
+            <CardContent className="p-6 sm:p-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="chip-mono text-[11px] text-primary">
+                  <Sparkles className="mr-1.5 inline h-3 w-3" /> INSIGHT
+                </div>
+                <h3 className="mt-2 font-display text-xl tracking-tightest">
+                  You could save <span className="text-gradient-violet">$${potentialSavings.toFixed(2)}/mo</span> by
+                  canceling two unused subscriptions.
+                </h3>
+              </div>
+              <Link href="/settings">
+                <Button className="gap-2 bg-gradient-to-br from-violet to-violet-dim text-primary-foreground shadow-[0_18px_60px_-12px_rgba(167,139,250,0.45)]">
+                  Review waste
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
       </main>
     </div>
   );

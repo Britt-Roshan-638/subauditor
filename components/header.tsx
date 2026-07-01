@@ -41,29 +41,35 @@ export function Header({
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_30%,rgba(255,255,255,.4),transparent)]" />
               <span className="absolute inset-0 grid place-items-center font-display text-base text-primary-foreground">
                 S
-         </span>
-       </div>
+              </span>
+            </div>
             <span className="font-display text-xl tracking-tightest text-foreground hidden sm:inline">
               SubAuditor
-       </span>
-     </Link>
+            </span>
+          </Link>
 
           <nav className="hidden items-center gap-7 md:flex">
+            <Link
+              href="/"
+              className="chip-mono text-[11px] text-muted-foreground transition-colors hover:text-foreground flex items-center gap-1.5"
+            >
+              HOME
+            </Link>
             <Link
               href="/dashboard"
               className="chip-mono text-[11px] text-muted-foreground transition-colors hover:text-foreground flex items-center gap-1.5"
             >
               <LayoutDashboard className="h-3.5 w-3.5" />
               DASHBOARD
-       </Link>
+            </Link>
             <Link
               href="/settings"
               className="chip-mono text-[11px] text-muted-foreground transition-colors hover:text-foreground flex items-center gap-1.5"
             >
               <Settings className="h-3.5 w-3.5" />
               SETTINGS
-       </Link>
-     </nav>
+            </Link>
+          </nav>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -74,32 +80,32 @@ export function Header({
                 <Avatar className="h-9 w-9">
                   <AvatarFallback className="bg-gradient-to-br from-violet to-violet-dim text-primary-foreground text-sm font-semibold">
                     {initials}
-            </AvatarFallback>
-          </Avatar>
-        </Button>
-      </DropdownMenuTrigger>
+              </AvatarFallback>
+            </Avatar>
+          </Button>
+        </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">{userName}</p>
                   <p className="text-xs leading-none text-muted-foreground">
                     {userEmail}
-            </p>
-          </div>
-        </DropdownMenuLabel>
+              </p>
+            </div>
+          </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link href="/dashboard" className="flex items-center">
                   <LayoutDashboard className="mr-2 h-4 w-4" />
                   Dashboard
-          </Link>
-        </DropdownMenuItem>
+              </Link>
+            </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/settings" className="flex items-center">
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
-          </Link>
-        </DropdownMenuItem>
+              </Link>
+            </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
@@ -107,11 +113,11 @@ export function Header({
               >
                 <LogOut className="mr-2 h-4 w-4" />
                 Log out
-      </DropdownMenuItem>
-    </DropdownMenuContent>
-  </DropdownMenu>
-    </div>
-    </div>
-  </header>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    </header>
   );
 }

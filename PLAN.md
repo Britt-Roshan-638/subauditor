@@ -7,7 +7,7 @@ A subscription tracking app that connects to users' bank accounts via Plaid, aut
 - **Framework:** Next.js 14 (App Router)
 - **Database:** PostgreSQL + Prisma ORM
 - **Auth:** NextAuth.js (Credentials + Google OAuth)
-- **Payments:** Stripe (subscriptions)
+- **Payments:** Razorpay (subscriptions)
 - **Bank Connections:** Plaid API
 - **Styling:** TailwindCSS + shadcn/ui
 - **Deployment:** Vercel
@@ -15,10 +15,10 @@ A subscription tracking app that connects to users' bank accounts via Plaid, aut
 ## Architecture
 
 ### Database Schema (Prisma)
-- User (id, email, name, password, plan, stripeCustomerId, createdAt)
-- Account (id, userId, plaidAccessToken, plaidItemId, institutionName)
-- Subscription (id, userId, name, amount, currency, frequency, category, lastChargeDate, nextChargeDate, status, plaidTransactionId, createdAt, updatedAt)
-- Transaction (id, userId, accountId, amount, date, name, category, plaidTransactionId)
+- User (id, email, name, password, plan, razorpayCustomerId, createdAt)
+- Account (id, userId, razorpayPaymentId, razorpaySubscriptionId, provider, providerAccountId)
+- Subscription (id, userId, name, amount, currency, frequency, category, lastChargeDate, nextChargeDate, status, razorpaySubscriptionId, createdAt, updatedAt)
+- Transaction (id, userId, accountId, amount, date, name, category, razorpayPaymentId)
 - PriceChange (id, subscriptionId, oldAmount, newAmount, detectedAt)
 
 ### API Routes
@@ -29,9 +29,9 @@ A subscription tracking app that connects to users' bank accounts via Plaid, aut
 - GET /api/subscriptions — List all subscriptions
 - DELETE /api/subscriptions/:id — Remove subscription
 - GET /api/subscriptions/stats — Dashboard stats
-- POST /api/stripe/checkout — Create Stripe checkout session
-- POST /api/stripe/portal — Open Stripe customer portal
-- POST /api/webhooks/stripe — Stripe webhook handler
+- POST /api/razorpay/checkout — Create Razorpay checkout session
+- POST /api/razorpay/portal — Open Razorpay customer portal
+- POST /api/webhooks/razorpay — Razorpay webhook handler
 
 ### Pages
 - / — Landing page
@@ -69,6 +69,6 @@ A subscription tracking app that connects to users' bank accounts via Plaid, aut
 3. Plaid bank connection
 4. Auto-detect subscriptions from transactions
 5. Dashboard with subscription list + stats
-6. Stripe payment integration
+6. Razorpay payment integration
 7. Settings page
 8. Responsive design

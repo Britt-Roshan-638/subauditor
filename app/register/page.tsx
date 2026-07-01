@@ -41,10 +41,11 @@ export default function RegisterPage() {
         email,
         password,
         redirect: false,
+        callbackUrl: "/dashboard",
       });
       if (result?.error) {
         setError("Account created but sign-in failed. Please log in manually.");
-      } else {
+      } else if (result?.ok) {
         router.push("/dashboard");
         router.refresh();
       }

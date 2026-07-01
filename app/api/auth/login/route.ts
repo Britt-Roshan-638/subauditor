@@ -11,16 +11,28 @@ export async function POST(req: NextRequest) {
   try {
     const { email, password } = await req.json();
 
-    if (!email || !password) {
+    // Basic input validation
+    if (!email || typeof email !== 'string' || email.trim() === '') {
       return NextResponse.json(
-        { error: "Email and password are required" },
+        { error: "Email is required and must be a non-empty string" },
         { status: 400 }
       );
     }
+    if (!password || typeof password !== 'string' || password.trim() === '') {
+      return NextResponse.json(
+        { error: "Password is required and must be a non-empty string" },
+        { status: 400 }
+      );
+    }
+    // Optional: add more specific validation (e.g., email format, password length)
+
+    // TODO: Implement rate limiting to prevent brute force attacks
+    // For example, limit login attempts per IP or per email.
+    // In production, consider using a Redis-based rate limiter or Vercel Edge Middleware.
 
     // Find user
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { email: email.trim().toLowerCase() },
     });
 
     if (!user || !user.password) {
@@ -48,7 +60,7 @@ export async function POST(req: NextRequest) {
         name: user.name,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Login error:", error);
     return NextResponse.json(
       { error: "Something went wrong. Please try again." },

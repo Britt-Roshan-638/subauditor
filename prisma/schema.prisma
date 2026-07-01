@@ -1,30 +1,10 @@
 generator client {
   provider = "prisma-client-js"
-  // previewFeatures = ["driverAdapters"] // uncomment if you migrate off @prisma/client to a driver adapter
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
-}
-
-model User {
-  id               String         @id @default(cuid())
-  email            String         @unique
-  name             String?
-  password         String?
-  emailVerified    DateTime?
-  image            String?
-  plan             String         @default("free")
-  stripeCustomerId String?        @unique
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  accounts         Account[]
-  plaidAccounts    PlaidAccount[]
-  subscriptions    Subscription[]
-  transactions     Transaction[]
-  sessions         Session[]
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Account {
@@ -40,10 +20,29 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  User              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+}
+
+model PlaidAccount {
+  id               String        @id @default(cuid())
+  userId           String
+  plaidAccessToken String        @unique
+  plaidItemId      String        @unique
+  institutionName  String?
+  createdAt        DateTime      @default(now())
+  User             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Transaction      Transaction[]
+}
+
+model PriceChange {
+  id             String       @id @default(cuid())
+  subscriptionId String
+  oldAmount      Float
+  newAmount      Float
+  detectedAt     DateTime     @default(now())
+  Subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 }
 
 model Session {
@@ -51,8 +50,77 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
+  User         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+model Subscription {
+  id                 String        @id @default(cuid())
+  userId             String
+  name               String
+  amount             Float
+  currency           String        @default("USD")
+  frequency          String
+  category           String?
+  lastChargeDate     DateTime?
+  nextChargeDate     DateTime?
+  startDate          DateTime?
+  endDate            DateTime?
+  status             String        @default("active")
+  plaidTransactionId String?       @unique
+  razorpaySubscriptionId String?   @unique
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  PriceChange        PriceChange[]
+  User               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model RazorpayPayment {
+  id                 String   @id @default(cuid())
+  userId             String
+  razorpayPaymentId  String   @unique
+  amount             Float
+  currency           String
+  status             String
+  method             String?
+  email              String?
+  contact            String?
+  createdAt          DateTime @default(now())
+  User               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Transaction {
+  id                 String        @id @default(cuid())
+  userId             String
+  accountId          String
+  plaidAccountId     String?
+  amount             Float
+  date               DateTime
+  name               String
+  category           String?
+  plaidTransactionId String?       @unique
+  PlaidAccount       PlaidAccount? @relation(fields: [plaidAccountId], references: [id])
+  User               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+}
+
+model User {
+  id               String         @id @default(cuid())
+  email            String         @unique
+  name             String?
+  password         String?
+  emailVerified    DateTime?
+  image            String?
+  plan             String         @default("free")
+  razorpayCustomerId String?      @unique
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime
+  Account          Account[]
+  PlaidAccount     PlaidAccount[]
+  Session          Session[]
+  Subscription     Subscription[]
+  Transaction      Transaction[]
+  RazorpayPayment  RazorpayPayment[]
 }
 
 model VerificationToken {
@@ -61,62 +129,4 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
-}
-
-model PlaidAccount {
-  id               String         @id @default(cuid())
-  userId           String
-  plaidAccessToken String         @unique
-  plaidItemId      String         @unique
-  institutionName  String?
-  createdAt        DateTime       @default(now())
-
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
-}
-
-model Subscription {
-  id                 String       @id @default(cuid())
-  userId             String
-  name               String
-  amount             Float
-  currency           String       @default("USD")
-  frequency          String
-  category           String?
-  lastChargeDate     DateTime?
-  nextChargeDate     DateTime?
-  status             String       @default("active")
-  plaidTransactionId String?      @unique
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
-
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  priceChanges PriceChange[]
-}
-
-model Transaction {
-  id                 String   @id @default(cuid())
-  userId             String
-  accountId          String
-  plaidAccountId     String?
-  amount             Float
-  date               DateTime
-  name               String
-  category           String?
-  plaidTransactionId String?  @unique
-
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plaidAccount PlaidAccount? @relation(fields: [plaidAccountId], references: [id], onDelete: SetNull)
-
-  @@index([userId, date])
-}
-
-model PriceChange {
-  id             String   @id @default(cuid())
-  subscriptionId String
-  oldAmount      Float
-  newAmount      Float
-  detectedAt     DateTime @default(now())
-
-  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 }

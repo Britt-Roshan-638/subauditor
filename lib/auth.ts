@@ -55,7 +55,11 @@ export const authOptions = {
         ]
       : []),
   ],
-  session: { strategy: "jwt" as const },
+  session: {
+    strategy: "jwt" as const,
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+    updateAge: 24 * 60 * 60,   // Update every 24 hours
+  },
   pages: { signIn: "/login" },
   callbacks: {
     async jwt({ token, user }: any) {
@@ -72,10 +76,25 @@ export const authOptions = {
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
+  cookies: {
+    sessionToken: {
+      name: `${
+        process.env.NEXTAUTH_URL?.startsWith("https://")
+          ? "__Secure-"
+          : ""
+      }next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax" as const,
+        path: "/",
+        secure: !!process.env.NEXTAUTH_URL?.startsWith("https://"),
+      },
+    },
+  },
 };
 
 const SESSION_COOKIE_NAME =
-  process.env.NODE_ENV === "production"
+  process.env.NEXTAUTH_URL?.startsWith("https://")
     ? "__Secure-next-auth.session-token"
     : "next-auth.session-token";
 
@@ -83,7 +102,6 @@ const SESSION_COOKIE_NAME =
  * Read raw JWT from a NextRequest cookies. Works in App Router route handlers.
  */
 async function readJwtFromRequest(request: NextRequest) {
-  // First try the explicit cookie (production uses __Secure- prefix; dev doesn't).
   const raw =
     request.cookies.get(SESSION_COOKIE_NAME)?.value ||
     request.cookies.get("__Secure-next-auth.session-token")?.value ||

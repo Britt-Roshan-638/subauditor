@@ -1,18 +1,12 @@
+// app/api/auth/me/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth";
+import prisma from "@/lib/prisma";
 
-/**
- * GET /api/auth/me — returns the current authenticated user's profile.
- */
 export async function GET(request: NextRequest) {
-  const user = await getCurrentUser(request);
-
-  if (!user) {
-    return NextResponse.json(
-      { error: "Unauthorized" },
-      { status: 401 }
-    );
-  }
+  const { user, error } = await requireAuth(request);
+  if (error) return error;
 
   return NextResponse.json({
     user: {
@@ -20,7 +14,7 @@ export async function GET(request: NextRequest) {
       email: user.email,
       name: user.name,
       plan: user.plan,
-      stripeCustomerId: user.stripeCustomerId,
+      razorpayCustomerId: user.razorpayCustomerId,
     },
   });
 }

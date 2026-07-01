@@ -7,7 +7,7 @@ FRAMEWORK: Next.js 14.2.35 + React 18 + TypeScript
 DATABASE: SQLite (via Prisma ORM)
 AUTH: NextAuth (Credentials + Google OAuth)
 STYLING: Tailwind CSS + shadcn/ui + Radix UI
-PAYMENT: Stripe
+PAYMENT: Razorpay
 BANK LINK: Plaid
 
 ================================================================================
@@ -45,7 +45,7 @@ C:\Users\Britt Roshan\subauditor\
 ├── middleware.ts                 # NextAuth middleware (protects /dashboard, /settings, /onboarding)
 ├── next.config.js                # Next.js config (bcryptjs external package)
 ├── package.json                  # 213 packages
-├── package-lock.json
+├__package-lock.json__
 ├── PLAN.md                       # Project plan
 ├── postcss.config.js             # PostCSS (Tailwind + Autoprefixer)
 ├── tailwind.config.js            # Tailwind (shadcn/ui theme)
@@ -83,7 +83,7 @@ C:\Users\Britt Roshan\subauditor\
 │   ├── auth.ts                   # NextAuth config (Credentials + Google OAuth)
 │   ├── plaid.ts                  # Plaid API client
 │   ├── prisma.ts                 # PrismaClient singleton
-│   ├── stripe.ts                 # Stripe client
+│   ├── razorpay.ts               # Razorpay client (replaced stripe.ts)
 │   ├── subscription-detector.ts  # Recurring transaction detection
 │   └── utils.ts                  # cn(), formatCurrency(), formatDate()
 │
@@ -100,12 +100,12 @@ C:\Users\Britt Roshan\subauditor\
 DATABASE MODELS (Prisma Schema)
 ================================================================================
 
-1. User           - id, email, name, password, plan, stripeCustomerId, emailVerified, image
+1. User           - id, email, name, password, plan, razorpayCustomerId, emailVerified, image
 2. Account        - id, userId, type, provider, providerAccountId, refresh_token, access_token
 3. Session        - id, sessionToken, userId, expires
 4. VerificationToken - identifier, token, expires
 5. PlaidAccount   - id, userId, plaidAccessToken, plaidItemId, institutionName
-6. Subscription   - id, userId, name, amount, currency, frequency, category, status, plaidTransactionId
+6. Subscription   - id, userId, name, amount, currency, frequency, category, status, razorpaySubscriptionId
 7. Transaction    - id, userId, accountId, amount, date, name, category, plaidTransactionId
 8. PriceChange    - id, subscriptionId, oldAmount, newAmount, detectedAt
 
@@ -130,30 +130,35 @@ API ROUTES (dynamic):
   /api/plaid/exchange       Exchange Plaid public token
   /api/plaid/link-token     Create Plaid link token
   /api/plaid/sync           Sync Plaid transactions
-  /api/stripe/checkout      Create Stripe checkout session
-  /api/stripe/portal        Stripe customer portal
+  /api/razorpay/checkout    Create Razorpay checkout session
+  /api/razorpay/portal      Razorpay customer portal
   /api/subscriptions        List subscriptions
   /api/subscriptions/stats  Subscription statistics
   /api/subscriptions/[id]   Single subscription
   /api/transactions         List transactions
-  /api/webhooks/stripe      Stripe webhook handler
+  /api/webhooks/razorpay    Razorpay webhook handler
 
 ================================================================================
 ENVIRONMENT VARIABLES (.env)
 ================================================================================
 
+# Database - SQLite (local development)
 DATABASE_URL="file:./dev.db"
+
+# NextAuth - for local development use http://localhost:3000
 NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="change-me-to-a-real-secret-change-this"
-GOOGLE_CLIENT_ID=""
-GOOGLE_CLIENT_SECRET=""
-PLAID_CLIENT_ID="your-plaid-client-id"
-PLAID_SECRET="your-plaid-secret"
-PLAID_ENV="sandbox"
-STRIPE_SECRET_KEY=""
-STRIPE_WEBHOOK_SECRET=""
-STRIPE_PRICE_MONTHLY=""
-STRIPE_PRICE_ANNUAL=""
+NEXTAUTH_SECRET="REPLACE-WITH-NEW-SECRET-32-CHARS-MIN"
+
+# Google OAuth (get credentials from Google Cloud Console)
+GOOGLE_CLIENT_ID="504669260167-nt7rh5b8iom72rnvifvh3qq8qviatqh8.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET="REPLACE-WITH-NEW-SECRET-FROM-GOOGLE-CLOUD"
+
+# Razorpay (get credentials from Razorpay Dashboard - use test mode for testing)
+RAZORPAY_KEY_ID="your-razorpay-key-id-here"
+RAZORPAY_KEY_SECRET="your-razorpay-key-secret-here"
+RAZORPAY_WEBHOOK_SECRET="your-razorpay-webhook-secret-here"
+RAZORPAY_PLAN_ID_MONTHLY="your-razorpay-plan-id-monthly-here"
+RAZORPAY_PLAN_ID_ANNUAL="your-razorpay-plan-id-annual-here"
 
 ================================================================================
 KEY DEPENDENCIES
@@ -167,7 +172,7 @@ prisma@5.22.0              Prisma CLI
 next-auth@4               Authentication
 @auth/prisma-adapter      Prisma adapter for NextAuth
 bcryptjs                  Password hashing
-stripe@latest             Payment processing
+razorpay@latest           Payment processing (replaced stripe@latest)
 plaid@latest              Bank account linking
 tailwindcss@3             Utility-first CSS
 postcss / autoprefixer    CSS processing
@@ -182,10 +187,11 @@ SETUP COMMANDS USED
 ================================================================================
 
 1. npm install            - Installed 213 packages
-2. npx prisma generate    - Generated Prisma Client for SQLite
-3. npx prisma db push     - Created SQLite database (dev.db)
-4. npx next build         - Production build (22 pages generated)
-5. npx next start -p 3000 - Started production server
+2. npm install razorpay   - Added Razorpay payment gateway
+3. npx prisma generate    - Generated Prisma Client for SQLite
+4. npx prisma db push     - Created SQLite database (dev.db)
+5. npx next build         - Production build (22 pages generated)
+6. npx next start -p 3000 - Started production server
 
 ================================================================================
 MIDDLEWARE PROTECTION
@@ -213,3 +219,5 @@ NOTES
 - PostgreSQL was installed at C:\Program Files\PostgreSQL\16 but not used
 - The [...nextauth] catch-all route was accidentally disabled during debugging
   and had to be restored for auth to work
+- Payment integration changed from Stripe to Razorpay per user request
+- All Stripe references have been removed and replaced with Razorpay equivalents

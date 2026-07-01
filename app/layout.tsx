@@ -1,17 +1,9 @@
 import type { Metadata } from "next";
-import { Instrument_Serif } from "next/font/google";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import AuthProvider from "@/components/auth-provider";
 import "./globals.css";
 
-const display = Instrument_Serif({
-  weight: "400",
-  style: ["normal", "italic"],
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-display",
-});
 
 export const metadata: Metadata = {
   title: "SubAuditor — Track & Audit Your Subscriptions",
@@ -33,7 +25,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`dark ${GeistSans}.variable} ${GeistMono}.variable} ${display}.variable}`}
+      className={`dark ${GeistSans.variable} ${GeistMono.variable}`}
       style={{ colorScheme: "dark" }}
     >
       <body className="min-h-screen bg-background font-sans antialiased">

@@ -22,24 +22,17 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/callback/credentials", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Invalid credentials");
-        return;
-      }
       const result = await signIn("credentials", {
         email,
         password,
         redirect: false,
+        callbackUrl: "/dashboard",
       });
       if (result?.error) {
-        setError("Sign-in failed. Please try again.");
-      } else {
+        setError(result.error === "CredentialsSignin"
+          ? "Invalid email or password."
+          : "Sign-in failed. Please try again.");
+      } else if (result?.ok) {
         router.push("/dashboard");
         router.refresh();
       }

@@ -7,23 +7,43 @@ export async function POST(req: NextRequest) {
   try {
     const { email, name, password } = await req.json();
 
-    if (!email || !password) {
+    // Input validation
+    if (!email || typeof email !== 'string' || email.trim() === '') {
       return NextResponse.json(
-        { error: "Email and password are required" },
+        { error: "Email is required and must be a non-empty string" },
         { status: 400 }
       );
     }
+    if (!name || typeof name !== 'string' || name.trim() === '') {
+      return NextResponse.json(
+        { error: "Name is required and must be a non-empty string" },
+        { status: 400 }
+      );
+    }
+    if (!password || typeof password !== 'string' || password.trim() === '') {
+      return NextResponse.json(
+        { error: "Password is required and must be a non-empty string" },
+        { status: 400 }
+      );
+    }
+    if (password.trim().length < 8) {
+      return NextResponse.json(
+        { error: "Password must be at least 8 characters long" },
+        { status: 400 }
+      );
+    }
+    // Optional: add email format validation
 
-    if (password.length < 8) {
-      return NextResponse.json(
-        { error: "Password must be at least 8 characters" },
-        { status: 400 }
-      );
-    }
+    // TODO: Implement rate limiting to prevent brute force/account enumeration
+    // For example, limit registration attempts per IP or per email domain.
+    // In production, consider using a Redis-based rate limiter or Vercel Edge Middleware.
+
+    // Normalize email
+    const normalizedEmail = email.trim().toLowerCase();
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
     });
 
     if (existingUser) {
@@ -34,14 +54,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const hashedPassword = await bcrypt.hash(password.trim(), 12);
 
     // Create user
     const user = await prisma.user.create({
       data: {
-        email,
-        name: name || null,
+        id: crypto.randomUUID(),
+        email: normalizedEmail,
+        name: name.trim(),
         password: hashedPassword,
+        updatedAt: new Date(),
       },
       select: {
         id: true,
@@ -58,7 +80,7 @@ export async function POST(req: NextRequest) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Registration error:", error);
     return NextResponse.json(
       { error: "Something went wrong. Please try again." },

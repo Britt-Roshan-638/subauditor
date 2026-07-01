@@ -41,7 +41,7 @@ const p = new PrismaClient();
     update: { password: h }
   });
   console.log('Seeded test@subauditor.com / Test1234!');
-  await p.\$disconnect();
+  await p.$disconnect();
 })();
 "
 ```
@@ -62,7 +62,7 @@ cd "C:\Users\Britt Roshan\subauditor"
 npm install        # installs deps + runs prisma generate via postinstall
 npx prisma db push # creates local dev.db
 # Optional seed
-node -e "const{PrismaClient}=require('@prisma/client');const bcrypt=require('bcryptjs');const p=new PrismaClient();(async()=>{const h=await bcrypt.hash('Test1234!',12);await p.user.upsert({where:{email:'test@subauditor.com'},create:{email:'test@subauditor.com',name:'Test User',password:h},update:{password:h}});console.log('Seeded');await p.\$disconnect();})();"
+node -e "const{PrismaClient}=require('@prisma/client');const bcrypt=require('bcryptjs');const p=new PrismaClient();(async()=>{const h=await bcrypt.hash('Test1234!',12);await p.user.upsert({where:{email:'test@subauditor.com'},create:{email:'test@subauditor.com',name:'Test User',password:h},update:{password:h}});console.log('Seeded');await p.$disconnect();})();"
 npm run dev        # or: npm run build && npm start
 ```
 
@@ -71,20 +71,21 @@ Login: **test@subauditor.com / Test1234!**
 
 ## Environment Variables (set on Vercel)
 
-| Variable | Status | Purpose |
-|---|---|---|
-| `DATABASE_URL` | **Set** (sqlite placeholder) | Replace with Neon URL for full functionality |
-| `NEXTAUTH_SECRET` | **Set** (placeholder) | 32-byte secret — change this in production |
-| `NEXTAUTH_URL` | **Set** | `https://subauditor-mu.vercel.app` |
-| `GOOGLE_CLIENT_ID` | optional | Google OAuth |
-| `GOOGLE_CLIENT_SECRET` | optional | Google OAuth |
-| `PLAID_CLIENT_ID` | optional | Plaid bank linking |
-| `PLAID_SECRET` | optional | Plaid bank linking |
-| `PLAID_ENV` | optional | `sandbox` for testing |
-| `STRIPE_SECRET_KEY` | optional | Stripe payments |
-| `STRIPE_WEBHOOK_SECRET` | optional | Stripe webhook signature |
-| `STRIPE_PRICE_MONTHLY` | optional | Stripe Pro price ID |
-| `STRIPE_PRICE_ANNUAL` | optional | Stripe Annual price ID |
+  | Variable | Status | Purpose |
+  |---|---|---|
+  | `DATABASE_URL` | **Set** (sqlite placeholder) | Replace with Neon URL for full functionality |
+  | `NEXTAUTH_SECRET` | **Set** (placeholder) | 32-byte secret — change this in production |
+  | `NEXTAUTH_URL` | **Set** | `https://subauditor-mu.vercel.app` |
+  | `GOOGLE_CLIENT_ID` | optional | Google OAuth |
+  | `GOOGLE_CLIENT_SECRET` | optional | Google OAuth |
+  | `PLAID_CLIENT_ID` | optional | Plaid bank linking |
+  | `PLAID_SECRET` | optional | Plaid bank linking |
+  | `PLAID_ENV` | optional | `sandbox` for testing |
+  | `RAZORPAY_KEY_ID` | **Required** | Razorpay key ID |
+  | `RAZORPAY_KEY_SECRET` | **Required** | Razorpay key secret |
+  | `RAZORPAY_WEBHOOK_SECRET` | **Required** | Razorpay webhook secret |
+  | `RAZORPAY_PLAN_ID_MONTHLY` | **Required** | Razorpay monthly plan ID |
+  | `RAZORPAY_PLAN_ID_ANNUAL` | optional | Razorpay annual plan ID |
 
 ## Post-Deployment Commands
 
@@ -118,3 +119,9 @@ npx vercel --prod --yes
 12. ✅ Removed redundant `'use client'` from `app/page.tsx` (already dynamic-imported)
 13. ✅ Added `vercel.json` with iad1 region
 14. ✅ Cleaned up debug noise files (`_check_fiber8*.js`, `dev-errors.txt`)
+15. ✅ **Migration Complete**: Replaced Stripe integration with Razorpay throughout the codebase
+16. ✅ Updated database schema: replaced `stripeCustomerId` with `razorpayCustomerId`
+17. ✅ Updated API routes: replaced `/api/stripe/*` with `/api/razorpay/*`
+18. ✅ Updated UI components: pricing page, settings page, pricing section to use Razorpay
+19. ✅ Updated environment variable references from Stripe to Razorpay
+20. ✅ Removed Stripe-specific code and dependencies

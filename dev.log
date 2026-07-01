@@ -1,0 +1,89 @@
+
+> subauditor@0.1.0 dev
+> next dev
+
+[33mwarn[39m  - Port 3000 is in use, trying 3001 instead.
+[32mready[39m - started server on 0.0.0.0:3001, url: http://localhost:3001
+[36minfo[39m  - Loaded env from C:\Users\Britt Roshan\subauditor\.env
+[33mwarn[39m  - [1mYou have enabled experimental feature (serverComponentsExternalPackages) in next.config.js.[22m
+[33mwarn[39m  - Experimental features are not covered by semver, and may cause unexpected or broken application behavior. Use at your own risk.
+
+Watchpack Error (initial scan): Error: EINVAL: invalid argument, lstat 'C:\DumpStack.log.tmp'
+Watchpack Error (initial scan): Error: EINVAL: invalid argument, lstat 'C:\pagefile.sys'
+Watchpack Error (initial scan): Error: EINVAL: invalid argument, lstat 'C:\swapfile.sys'
+Watchpack Error (initial scan): Error: EINVAL: invalid argument, lstat 'C:\DumpStack.log.tmp'
+Watchpack Error (initial scan): Error: EINVAL: invalid argument, lstat 'C:\pagefile.sys'
+Watchpack Error (initial scan): Error: EINVAL: invalid argument, lstat 'C:\swapfile.sys'
+[35mevent[39m - compiled client and server successfully in 7.7s (303 modules)
+(node:5260) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[36mwait[39m  - compiling /middleware (client and server)...
+[35mevent[39m - compiled successfully in 700 ms (172 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (659kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+[36mwait[39m  - compiling /login/page (client and server)...
+[35mevent[39m - compiled client and server successfully in 19.2s (3007 modules)
+[36mwait[39m  - compiling...
+[35mevent[39m - compiled successfully in 1078 ms (2331 modules)
+[36mwait[39m  - compiling /api/auth/[...nextauth]/route (client and server)...
+[35mevent[39m - compiled successfully in 1368 ms (321 modules)
+[31merror[39m - TypeError: Invalid URL
+[90m    at new URL (node:internal/url:840:25)[39m
+    at Object.redirect (webpack-internal:///(sc_server)/./node_modules/[4mnext-auth[24m/core/lib/default-callbacks.js:12:18)
+    at createCallbackUrl (webpack-internal:///(sc_server)/./node_modules/[4mnext-auth[24m/core/lib/callback-url.js:10:39)
+    at init (webpack-internal:///(sc_server)/./node_modules/[4mnext-auth[24m/core/init.js:115:91)
+    at AuthHandler (webpack-internal:///(sc_server)/./node_modules/[4mnext-auth[24m/core/index.js:122:57)
+[90m    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+    at async NextAuthRouteHandler (webpack-internal:///(sc_server)/./node_modules/[4mnext-auth[24m/next/index.js:50:30)
+    at async NextAuth._args$ (webpack-internal:///(sc_server)/./node_modules/[4mnext-auth[24m/next/index.js:85:24)
+    at async eval (webpack-internal:///(sc_server)/./node_modules/[4mnext[24m/dist/server/future/route-modules/app-route/module.js:244:37) {
+  code: [32m'ERR_INVALID_URL'[39m,
+  input: [32m'%2Fdashboard'[39m
+}
+[36mwait[39m  - compiling...
+[35mevent[39m - compiled successfully in 2s (2331 modules)
+[36mwait[39m  - compiling...
+[35mevent[39m - compiled successfully in 1171 ms (2331 modules)
+[36mwait[39m  - compiling...
+[35mevent[39m - compiled successfully in 1553 ms (2331 modules)
+[36mwait[39m  - compiling...
+[35mevent[39m - compiled successfully in 1119 ms (2331 modules)
+[36mwait[39m  - compiling...
+[35mevent[39m - compiled successfully in 1067 ms (2331 modules)
+[36mwait[39m  - compiling...
+[35mevent[39m - compiled successfully in 1681 ms (2331 modules)
+[36mwait[39m  - compiling...
+[35mevent[39m - compiled successfully in 1763 ms (2331 modules)
+[36mwait[39m  - compiling...
+[35mevent[39m - compiled successfully in 1163 ms (2331 modules)
+[36mwait[39m  - compiling...
+[35mevent[39m - compiled successfully in 1420 ms (2331 modules)
+[36mwait[39m  - compiling...
+[35mevent[39m - compiled successfully in 1662 ms (2331 modules)
+[36mwait[39m  - compiling...
+[35mevent[39m - compiled successfully in 930 ms (2331 modules)
+[36mwait[39m  - compiling...
+[35mevent[39m - compiled successfully in 1131 ms (2331 modules)
+[36mwait[39m  - compiling...
+[35mevent[39m - compiled successfully in 1591 ms (2331 modules)
+[36mwait[39m  - compiling...
+[35mevent[39m - compiled successfully in 1814 ms (2331 modules)
+[36mwait[39m  - compiling...
+[35mevent[39m - compiled successfully in 851 ms (2331 modules)
+[36mwait[39m  - compiling...
+[35mevent[39m - compiled successfully in 1395 ms (2331 modules)
+[36mwait[39m  - compiling...
+[35mevent[39m - compiled successfully in 982 ms (2331 modules)
+[36mwait[39m  - compiling...
+[35mevent[39m - compiled successfully in 1321 ms (2331 modules)
+[36mwait[39m  - compiling...
+[35mevent[39m - compiled successfully in 852 ms (2331 modules)
+[36mwait[39m  - compiling...
+[35mevent[39m - compiled successfully in 1557 ms (2331 modules)
+[36mwait[39m  - compiling...
+[31merror[39m - Module not found: SyntaxError: C:\Users\Britt Roshan\subauditor\package.json (directory description file): SyntaxError: C:\Users\Britt Roshan\subauditor\package.json (directory description file): SyntaxError: Unexpected non-whitespace character after JSON at position 14 (line 1 column 15)
+[36minfo[39m  - Loaded env from C:\Users\Britt Roshan\subauditor\.env
+[36mwait[39m  - compiling...
+[31merror[39m - Module not found: SyntaxError: C:\Users\Britt Roshan\subauditor\package.json (directory description file): SyntaxError: C:\Users\Britt Roshan\subauditor\package.json (directory description file): SyntaxError: Unexpected non-whitespace character after JSON at position 14 (line 1 column 15)
+[36minfo[39m  - Loaded env from C:\Users\Britt Roshan\subauditor\.env
+[36mwait[39m  - compiling...
+[31merror[39m - Module not found: SyntaxError: C:\Users\Britt Roshan\subauditor\package.json (directory description file): SyntaxError: C:\Users\Britt Roshan\subauditor\package.json (directory description file): SyntaxError: Unexpected non-whitespace character after JSON at position 14 (line 1 column 15)

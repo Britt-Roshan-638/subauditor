@@ -10,6 +10,11 @@ export async function GET(request: NextRequest) {
     const subscriptions = await prisma.subscription.findMany({
       where: { userId: user!.id },
       orderBy: { amount: "desc" },
+      include: {
+        PriceChange: {
+          orderBy: { detectedAt: "desc" },
+        },
+      },
     });
 
     return NextResponse.json({ subscriptions });

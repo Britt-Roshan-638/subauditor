@@ -103,7 +103,7 @@ export function Features() {
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="mt-5 text-lg text-muted-foreground"
+            className="mt-5 text-lg text-muted-foreground leading-relaxed"
           >
             Six instruments, one quiet dashboard. Built for the people who
             <em> actually</em>

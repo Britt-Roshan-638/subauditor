@@ -26,6 +26,9 @@ export default function LandingPage() {
           </span>
         </Link>
           <nav className="hidden items-center gap-7 md:flex">
+            <Link href="/" className="chip-mono text-[11px] text-muted-foreground transition-colors hover:text-foreground">
+              HOME
+            </Link>
             <a
               href="#features"
               className="chip-mono text-[11px] text-muted-foreground transition-colors hover:text-foreground"

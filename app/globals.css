@@ -50,6 +50,7 @@
 
     --radius: 0.875rem;
     --radius-lg: 1.5rem;
+    --font-display: Georgia;
 
     /* Brand tokens (raw colors for 3D shaders / glsl) */
     --ink: #060611;

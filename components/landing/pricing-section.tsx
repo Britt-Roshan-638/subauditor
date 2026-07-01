@@ -41,7 +41,7 @@ const plans = [
       "Priority support",
     ],
     cta: "Upgrade to Pro",
-    href: "/api/stripe/checkout",
+    href: "/api/razorpay/checkout",
     popular: true,
     variant: "default" as const,
   },
@@ -102,7 +102,7 @@ export function PricingSection() {
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="mt-5 text-lg text-muted-foreground"
+            className="mt-5 text-lg text-muted-foreground leading-relaxed"
           >
             Free up to five subscriptions. Pro unlocks the bank-sync engine that finds
             the ones you are already forgetting about.
@@ -147,12 +147,13 @@ export function PricingSection() {
 
                   <Link href={plan.href}>
                     <Button
+                      variant={plan.variant}
                       className={`h-12 w-full text-base ${
                         plan.variant === "default"
-                          ? "bg-gradient-to-br from-violet to-violet-dim text-primary-foreground shadow-[0_18px_60px_-12px_rgba(167,139,250,0.4)] hover:shadow-[0_18px_60px_-6px_rgba(167,139,250,0.7)]"
+                          ? "text-primary-foreground bg-gradient-to-br from-violet to-violet-dim shadow-[0_18px_60px_-12px_rgba(167,139,250,0.4)] hover:shadow-[0_18px_60px_-6px_rgba(167,139,250,0.7)]"
                           : plan.variant === "outline"
-                          ? "border-border bg-card/60 hover:bg-card"
-                          : "border-border bg-card/60 hover:bg-card"
+                          ? "text-foreground border-border"
+                          : "text-foreground border-border bg-card/60 hover:bg-card"
                       }`}
                     >
                       {plan.cta}

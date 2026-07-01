@@ -1,0 +1,1 @@
+import { prisma } from './lib/prisma'; async function main() { const user = await prisma.user.findUnique({ where: { email: 'test@subauditor.com' } }); console.log('User found:', user); if (!user) console.log('No user found with that email'); const count = await prisma.user.count(); console.log('Total users:', count); } main().catch(console.error);

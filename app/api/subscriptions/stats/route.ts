@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
       });
 
       const totalSpend = Math.abs(
-        transactions.reduce((sum, t) => sum + t.amount, 0)
+        transactions.reduce((sum: number, t: { amount: number }) => sum + t.amount, 0)
       );
 
       monthlyTrend.push({
@@ -85,10 +85,11 @@ export async function GET(request: NextRequest) {
       wasteScore,
       potentialSavings,
     });
-  } catch (error: any) {
-    console.error("Error fetching subscription stats:", error);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to fetch stats";
+    console.error("Error fetching subscription stats:", message);
     return NextResponse.json(
-      { error: error.message || "Failed to fetch stats" },
+      { error: message },
       { status: 500 }
     );
   }

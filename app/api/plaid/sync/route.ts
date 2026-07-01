@@ -26,6 +26,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // TODO: Implement rate limiting to prevent excessive Plaid API calls
+    // For example, restrict to max 1 sync per hour per user.
+    // In production, consider using a Redis-based rate limiter or Vercel Edge Middleware.
+
     const endDate = format(new Date(), "yyyy-MM-dd");
     const startDate = format(subDays(new Date(), 365), "yyyy-MM-dd");
 
@@ -52,6 +56,7 @@ export async function POST(request: NextRequest) {
               category: txn.category,
             },
             create: {
+              id: crypto.randomUUID(),
               userId,
               accountId: plaidAccount.id,
               amount: txn.amount,
@@ -88,6 +93,7 @@ export async function POST(request: NextRequest) {
             status: "active",
           },
           create: {
+            id: crypto.randomUUID(),
             userId,
             name: sub.name,
             amount: sub.amount,
@@ -97,6 +103,7 @@ export async function POST(request: NextRequest) {
             nextChargeDate: sub.nextChargeDate,
             plaidTransactionId: sub.plaidTransactionId,
             status: "active",
+            updatedAt: new Date(),
           },
         });
         subscriptionsCreated++;
