@@ -19,7 +19,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
-|import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 
 export default function DashboardPage() {
