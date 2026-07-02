@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
       name: user.name,
       plan: user.plan,
       razorpayCustomerId: user.razorpayCustomerId,
+      referralCode: user.referralCode,
     },
   });
 }

@@ -1,17 +1,19 @@
-// app/settings/page.tsx — account, bank, billing.
+// app/settings/page.tsx — account, bank, billing, referral.
 
 "use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Header } from "@/components/header";
-import { Landmark, LogOut, Check, RefreshCcw, CreditCard, Banknote } from "lucide-react";
+import { Landmark, LogOut, Check, RefreshCcw, CreditCard, Banknote, Gift, Copy, Loader2, ExternalLink } from "lucide-react";
 
 interface UserProfile {
   name: string;
   email: string;
   plan: string;
   razorpayCustomerId: string | null;
+  referralCode: string | null;
 }
 
 interface BankAccount {
@@ -20,9 +22,15 @@ interface BankAccount {
 }
 
 export default function SettingsPage() {
+  const router = useRouter();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [upgrading, setUpgrading] = useState(false);
+  const [referralCopied, setReferralCopied] = useState(false);
+  const [referralInput, setReferralInput] = useState("");
+  const [referralApplied, setReferralApplied] = useState(false);
+  const [referralStatus, setReferralStatus] = useState<"idle" | "applying" | "success" | "error">("idle");
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -36,6 +44,41 @@ export default function SettingsPage() {
       .then((data) => data?.accounts && setBankAccounts(data.accounts))
       .catch(() => {});
   }, []);
+
+  const copyReferralLink = () => {
+    if (!user?.referralCode) return;
+    const link = `${window.location.origin}/register?ref=${user.referralCode}`;
+    navigator.clipboard.writeText(link).then(() => {
+      setReferralCopied(true);
+      setTimeout(() => setReferralCopied(false), 2500);
+    });
+  };
+
+  const applyReferralCode = async () => {
+    if (!referralInput.trim()) return;
+    setReferralStatus("applying");
+    try {
+      const res = await fetch("/api/referral/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: referralInput.trim() }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setReferralApplied(true);
+        setReferralStatus("success");
+      } else {
+        setReferralStatus("error");
+      }
+    } catch {
+      setReferralStatus("error");
+    }
+  };
+
+  const handleUpgrade = () => {
+    setUpgrading(true);
+    router.push("/pricing");
+  };
 
   if (isLoading) {
     return (
@@ -111,52 +154,139 @@ export default function SettingsPage() {
 
           {/* Billing */}
           <Section title="Billing">
-            <div className="flex items-center justify-between rounded-2xl border border-border bg-card/40 p-5">
-              <div>
-                <div className="text-sm font-medium">
-                  {user?.plan === "pro" ? "Pro Plan" : "Auditor — Free"}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {user?.plan === "pro"
-                    ? "You have unlimited access to all Pro features."
-                    : "You are on the free plan — up to 5 subscriptions."}
-                </p>
+            <div className="rounded-2xl border border-border bg-card/40 p-5">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="text-sm font-medium">
+                    {user?.plan === "pro" ? "Pro Plan" : "Auditor — Free"}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {user?.plan === "pro"
+                      ? "You have unlimited access to all Pro features."
+                      : "You are on the free plan — up to 5 subscriptions."}
+                  </p>
 
-                {/* Show Razorpay customer info if available */}
-                {user?.razorpayCustomerId && (
-                  <div className="mt-3 pt-3 border-t border-border/50">
-                    <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <CreditCard className="h-4 w-4" />
-                        <span>Customer ID:</span>
-                        <span className="font-mono">{user.razorpayCustomerId}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Banknote className="h-4 w-4" />
-                        <span>Billing cycle:</span>
-                        <span>Monthly</span>
+                  {user?.razorpayCustomerId && (
+                    <div className="mt-3 pt-3 border-t border-border/50">
+                      <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="h-4 w-4" />
+                          <span>Customer ID:</span>
+                          <span className="font-mono">{user.razorpayCustomerId}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Banknote className="h-4 w-4" />
+                          <span>Billing cycle:</span>
+                          <span>Monthly</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
+                </div>
+
+                {user?.plan === "pro" ? (
+                  <Link
+                    href="/api/razorpay/portal"
+                    className="shrink-0 rounded-lg bg-gradient-to-br from-violet to-violet-dim px-4 py-2 text-xs font-medium text-primary-foreground shadow-[0_18px_60px_-12px_rgba(167,139,250,0.45)] hover:opacity-95 inline-flex items-center gap-1.5"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    MANAGE
+                  </Link>
+                ) : (
+                  <button
+                    onClick={handleUpgrade}
+                    disabled={upgrading}
+                    className="shrink-0 inline-flex items-center gap-2 rounded-lg bg-gradient-to-br from-violet to-violet-dim px-4 py-2 text-xs font-medium text-primary-foreground shadow-[0_18px_60px_-12px_rgba(167,139,250,0.45)] hover:opacity-95 disabled:opacity-60 transition-all duration-200"
+                  >
+                    {upgrading ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        Loading…
+                      </>
+                    ) : (
+                      "Upgrade to Pro"
+                    )}
+                  </button>
                 )}
               </div>
-              {user?.plan === "pro" ? (
-                <Link
-                  href="/api/razorpay/portal"
-                  className="rounded-lg bg-gradient-to-br from-violet to-violet-dim px-4 py-2 text-xs font-medium text-primary-foreground shadow-[0_18px_60px_-12px_rgba(167,139,250,0.45)] hover:opacity-95"
-                >
-                  MANAGE SUBSCRIPTION
-                </Link>
-              ) : (
-                <Link
-                  href="/pricing"
-                  className="rounded-lg bg-gradient-to-br from-violet to-violet-dim px-4 py-2 text-xs font-medium text-primary-foreground shadow-[0_18px_60px_-12px_rgba(167,139,250,0.45)] hover:opacity-95"
-                >
-                  Upgrade to Pro
-                </Link>
-              )}
             </div>
+
+            {/* Referral Code — show for both free and pro */}
+            {user?.plan === "pro" && (
+              <div className="mt-4 rounded-2xl border border-violet/20 bg-violet/5 p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <Gift className="h-4 w-4 text-violet-glow" />
+                  <span className="text-sm font-medium">Your referral code</span>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Share your code with friends. When they sign up, they get a discount and you earn rewards.
+                </p>
+                {user.referralCode ? (
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm font-mono text-violet-glow">
+                      {user.referralCode}
+                    </code>
+                    <button
+                      onClick={copyReferralLink}
+                      className="shrink-0 rounded-lg bg-gradient-to-br from-violet to-violet-dim px-3 py-2 text-xs font-medium text-primary-foreground hover:opacity-95 inline-flex items-center gap-1.5"
+                    >
+                      {referralCopied ? (
+                        <>
+                          <Check className="h-3.5 w-3.5" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3.5 w-3.5" />
+                          Copy link
+                        </>
+                      )}
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">
+                    No referral code assigned yet.
+                  </p>
+                )}
+              </div>
+            )}
           </Section>
+
+          {/* Apply a referral code */}
+          {user?.plan === "free" && !referralApplied && (
+            <Section title="Have a referral code?">
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  value={referralInput}
+                  onChange={(e) => setReferralInput(e.target.value)}
+                  placeholder="Enter referral code"
+                  className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:border-violet-glow/50 placeholder:text-muted-foreground/50"
+                  maxLength={20}
+                />
+                <button
+                  onClick={applyReferralCode}
+                  disabled={referralInput.trim().length < 3 || referralStatus === "applying"}
+                  className="rounded-lg bg-gradient-to-br from-violet to-violet-dim px-4 py-2 text-xs font-medium text-primary-foreground disabled:opacity-40 hover:opacity-95 inline-flex items-center gap-1.5"
+                >
+                  {referralStatus === "applying" ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : null}
+                  Apply
+                </button>
+              </div>
+              {referralStatus === "success" && (
+                <p className="mt-2 text-xs text-emerald-400 flex items-center gap-1">
+                  <Check className="h-3 w-3" /> Code applied! You may get a discount on your next upgrade.
+                </p>
+              )}
+              {referralStatus === "error" && (
+                <p className="mt-2 text-xs text-destructive">
+                  Invalid or expired referral code. Check and try again.
+                </p>
+              )}
+            </Section>
+          )}
 
           {/* Session */}
           <Section title="Session">

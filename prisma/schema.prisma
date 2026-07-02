@@ -115,6 +115,8 @@ model User {
   plan             String         @default("free")
   razorpayCustomerId String?      @unique
   stripeCustomerId   String?      @unique
+  referralCode     String?        @unique
+  referredBy       String?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @default(now()) @updatedAt
   accounts         Account[]
