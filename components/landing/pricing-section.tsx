@@ -1,10 +1,12 @@
 "use client";
 
 // components/landing/pricing-section.tsx — inline 3-column pricing with Pro highlight.
+// Checks auth so logged-in users go to /dashboard instead of /register.
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { Check, Sparkles } from "lucide-react";
+import { Check, Sparkles, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const plans = [
@@ -21,7 +23,9 @@ const plans = [
       "Email support",
     ],
     cta: "Get started",
+    authCta: "Go to dashboard",
     href: "/register",
+    authHref: "/dashboard",
     popular: false,
     variant: "ghost" as const,
   },
@@ -41,7 +45,9 @@ const plans = [
       "Priority support",
     ],
     cta: "Upgrade to Pro",
-    href: "/api/razorpay/checkout",
+    authCta: "View pricing",
+    href: "/pricing",
+    authHref: "/pricing",
     popular: true,
     variant: "default" as const,
   },
@@ -59,7 +65,9 @@ const plans = [
       "Household waste rankings",
     ],
     cta: "Start family audit",
+    authCta: "Coming soon",
     href: "/register?plan=family",
+    authHref: "/dashboard",
     popular: false,
     variant: "outline" as const,
   },
@@ -75,6 +83,17 @@ const card = {
 };
 
 export function PricingSection() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.ok && r.json())
+      .then((d) => setIsLoggedIn(!!d?.user))
+      .catch(() => setIsLoggedIn(false))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <section id="pricing" className="relative py-32 sm:py-40">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -145,7 +164,7 @@ export function PricingSection() {
                     </div>
                   </div>
 
-                  <Link href={plan.href}>
+                  <Link href={!loading && isLoggedIn ? plan.authHref : plan.href}>
                     <Button
                       variant={plan.variant}
                       className={`h-12 w-full text-base ${
@@ -156,7 +175,7 @@ export function PricingSection() {
                           : "text-foreground border-border bg-card/60 hover:bg-card"
                       }`}
                     >
-                      {plan.cta}
+                      {!loading && isLoggedIn ? plan.authCta : plan.cta}
                     </Button>
                   </Link>
 

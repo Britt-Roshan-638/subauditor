@@ -1,12 +1,13 @@
 // app/pricing/page.tsx — standalone pricing page, brand-aligned with Razorpay + referral code.
+// Shows "Current Plan" badge for Pro users, "Sign In" for guests, handles missing env vars.
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import loadScript from "@/lib/loadScript";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Check, Sparkles, ArrowRight, Loader2, Gift, Copy, CheckCircle2 } from "lucide-react";
+import { Check, Sparkles, ArrowRight, Loader2, Gift, Copy, CheckCircle2, LogIn, ShieldCheck } from "lucide-react";
 
 declare global {
   interface Window {
@@ -14,13 +15,36 @@ declare global {
   }
 }
 
+interface UserData {
+  id: string;
+  email: string;
+  name: string;
+  plan: string;
+  referralCode: string | null;
+}
+
 export default function PricingPage() {
+  const [authLoading, setAuthLoading] = useState(true);
+  const [user, setUser] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [razorpayReady, setRazorpayReady] = useState(false);
   const [referralCode, setReferralCode] = useState("");
   const [referralApplied, setReferralApplied] = useState(false);
   const [referralCopied, setReferralCopied] = useState(false);
   const [step, setStep] = useState<"idle" | "processing" | "redirecting">("idle");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [envIssue, setEnvIssue] = useState(false);
+
+  // Check auth status
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        setUser(data?.user || null);
+        setAuthLoading(false);
+      })
+      .catch(() => setAuthLoading(false));
+  }, []);
 
   // Load Razorpay checkout SDK
   useEffect(() => {
@@ -29,10 +53,11 @@ export default function PricingPage() {
       .catch(() => console.error("Failed to load Razorpay SDK"));
   }, []);
 
-  const handleUpgrade = async () => {
+  const handleUpgrade = useCallback(async () => {
     if (!razorpayReady) return;
     setStep("processing");
     setIsLoading(true);
+    setErrorMsg(null);
     try {
       const res = await fetch("/api/razorpay/checkout", {
         method: "POST",
@@ -43,21 +68,26 @@ export default function PricingPage() {
 
       if (data.url) {
         setStep("redirecting");
-        // Small delay so user sees the "redirecting" state
         setTimeout(() => {
           window.location.href = data.url;
         }, 600);
       } else {
         setStep("idle");
         setIsLoading(false);
-        throw new Error("No URL returned from checkout endpoint");
+        if (data.error?.toLowerCase?.().includes("plan")) {
+          setEnvIssue(true);
+          setErrorMsg("Razorpay plan ID is not configured. Set RAZORPAY_PLAN_ID_MONTHLY in your .env file.");
+        } else {
+          setErrorMsg(data.error || "Checkout unavailable. Please try again later.");
+        }
       }
     } catch (err) {
       console.error("Error initiating Razorpay payment:", err);
       setStep("idle");
       setIsLoading(false);
+      setErrorMsg("Network error. Please try again.");
     }
-  };
+  }, [razorpayReady, referralApplied, referralCode]);
 
   const applyReferral = () => {
     if (referralCode.trim().length >= 3) {
@@ -73,9 +103,13 @@ export default function PricingPage() {
     });
   };
 
+  const isProUser = user?.plan === "pro";
+  const isLoggedIn = !!user;
+
   const buttonLabel = () => {
     if (step === "processing") return "Processing…";
     if (step === "redirecting") return "Redirecting to payment…";
+    if (envIssue) return "Configure payment first";
     return "Upgrade to Pro";
   };
 
@@ -95,8 +129,14 @@ export default function PricingPage() {
           <span className="font-display text-xl tracking-tightest">SubAuditor</span>
         </Link>
         <nav className="flex items-center gap-5">
-          <Link href="/login" className="chip-mono text-[11px] text-muted-foreground hover:text-foreground">LOG IN</Link>
-          <Link href="/register" className="rounded-lg bg-gradient-to-br from-violet to-violet-dim px-4 py-2 text-xs font-medium text-primary-foreground shadow-[0_10px_40px_-12px_rgba(167,139,250,0.6)] hover:opacity-95">Get started</Link>
+          {!authLoading && isLoggedIn ? (
+            <Link href="/dashboard" className="chip-mono text-[11px] text-primary hover:text-violet-glow">DASHBOARD</Link>
+          ) : (
+            <>
+              <Link href="/login" className="chip-mono text-[11px] text-muted-foreground hover:text-foreground">LOG IN</Link>
+              <Link href="/register" className="rounded-lg bg-gradient-to-br from-violet to-violet-dim px-4 py-2 text-xs font-medium text-primary-foreground shadow-[0_10px_40px_-12px_rgba(167,139,250,0.6)] hover:opacity-95">Get started</Link>
+            </>
+          )}
         </nav>
       </header>
 
@@ -142,8 +182,11 @@ export default function PricingPage() {
                   <span className="text-sm text-muted-foreground">/ forever</span>
                 </div>
               </div>
-              <Link href="/register" className="block w-full rounded-xl border border-border bg-card/60 py-3 text-center text-sm font-medium hover:bg-card">
-                Get started
+              <Link
+                href={isLoggedIn ? "/dashboard" : "/register"}
+                className="block w-full rounded-xl border border-border bg-card/60 py-3 text-center text-sm font-medium hover:bg-card"
+              >
+                {isLoggedIn ? "Go to dashboard" : "Get started"}
               </Link>
               <ul className="space-y-3 text-sm">
                 <li className="flex items-start gap-3 text-muted-foreground"><Bullet /> Up to 5 subscriptions tracked</li>
@@ -179,69 +222,98 @@ export default function PricingPage() {
                   </div>
                 </div>
 
-                {/* Referral Code Section */}
-                <div className="rounded-xl border border-border/60 bg-card/40 p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Gift className="h-4 w-4 text-violet-glow" />
-                    <span className="text-xs font-medium">Referral code</span>
+                {isProUser ? (
+                  /* Already Pro — show current plan badge */
+                  <div className="rounded-xl border border-emerald-400/30 bg-emerald-400/10 p-4 text-center">
+                    <div className="flex items-center justify-center gap-2 mb-1">
+                      <ShieldCheck className="h-4 w-4 text-emerald-400" />
+                      <span className="text-sm font-semibold text-emerald-400">Current Plan — Pro</span>
+                    </div>
+                    <p className="text-[11px] text-emerald-400/70">
+                      You have full access to all Pro features.
+                    </p>
                   </div>
-                  {!referralApplied ? (
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={referralCode}
-                        onChange={(e) => setReferralCode(e.target.value)}
-                        placeholder="Enter code"
-                        className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-xs font-mono placeholder:text-muted-foreground/50 focus:outline-none focus:border-violet-glow/50"
-                        maxLength={20}
-                      />
-                      <button
-                        onClick={applyReferral}
-                        disabled={referralCode.trim().length < 3}
-                        className="rounded-lg bg-gradient-to-br from-violet to-violet-dim px-3 py-2 text-xs font-medium text-primary-foreground disabled:opacity-40 hover:opacity-95 shrink-0"
-                      >
-                        Apply
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-2">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                        <span className="text-xs font-medium text-emerald-400">Code &quot;{referralCode}&quot; applied</span>
-                      </div>
-                      <button
-                        onClick={() => { setReferralApplied(false); setReferralCode(""); }}
-                        className="text-[10px] text-muted-foreground hover:text-foreground underline"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  )}
-                  <p className="mt-2 text-[10px] text-muted-foreground/60">
-                    Referral codes may give you a discount or free months. Know a subscriber? Ask for their code.
-                  </p>
-                </div>
-
-                <button
-                  onClick={handleUpgrade}
-                  disabled={isLoading}
-                  className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-br from-violet to-violet-dim py-3 text-sm font-medium text-primary-foreground shadow-[0_18px_60px_-12px_rgba(167,139,250,0.55)] hover:shadow-[0_18px_60px_-6px_rgba(167,139,250,0.7)] disabled:opacity-70 transition-all duration-300"
-                >
-                  {/* Loading shimmer */}
-                  {showSpinner && (
-                    <motion.div
-                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
-                      animate={{ x: ["-100%", "100%"] }}
-                      transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
-                    />
-                  )}
-                  {showSpinner ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
+                ) : !isLoggedIn ? (
+                  /* Not logged in — show Sign In CTA */
+                  <Link
+                    href="/login"
+                    className="group flex w-full items-center justify-center gap-2 rounded-xl border border-violet/30 bg-violet/5 py-3 text-sm font-medium text-violet-glow hover:bg-violet/10 transition-all"
+                  >
+                    <LogIn className="h-4 w-4" />
+                    Sign in to upgrade
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                  )}
-                  {buttonLabel()}
-                </button>
+                  </Link>
+                ) : (
+                  /* Free user logged in — show upgrade button */
+                  <>
+                    {/* Referral Code Section */}
+                    <div className="rounded-xl border border-border/60 bg-card/40 p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Gift className="h-4 w-4 text-violet-glow" />
+                        <span className="text-xs font-medium">Referral code</span>
+                      </div>
+                      {!referralApplied ? (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={referralCode}
+                            onChange={(e) => setReferralCode(e.target.value)}
+                            placeholder="Enter code"
+                            className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-xs font-mono placeholder:text-muted-foreground/50 focus:outline-none focus:border-violet-glow/50"
+                            maxLength={20}
+                          />
+                          <button
+                            onClick={applyReferral}
+                            disabled={referralCode.trim().length < 3}
+                            className="rounded-lg bg-gradient-to-br from-violet to-violet-dim px-3 py-2 text-xs font-medium text-primary-foreground disabled:opacity-40 hover:opacity-95 shrink-0"
+                          >
+                            Apply
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                            <span className="text-xs font-medium text-emerald-400">Code &quot;{referralCode}&quot; applied</span>
+                          </div>
+                          <button
+                            onClick={() => { setReferralApplied(false); setReferralCode(""); }}
+                            className="text-[10px] text-muted-foreground hover:text-foreground underline"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
+                      <p className="mt-2 text-[10px] text-muted-foreground/60">
+                        Referral codes may give you a discount or free months. Know a subscriber? Ask for their code.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={handleUpgrade}
+                      disabled={isLoading || envIssue}
+                      className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-br from-violet to-violet-dim py-3 text-sm font-medium text-primary-foreground shadow-[0_18px_60px_-12px_rgba(167,139,250,0.55)] hover:shadow-[0_18px_60px_-6px_rgba(167,139,250,0.7)] disabled:opacity-70 transition-all duration-300"
+                    >
+                      {showSpinner && (
+                        <motion.div
+                          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+                          animate={{ x: ["-100%", "100%"] }}
+                          transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
+                        />
+                      )}
+                      {showSpinner ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                      )}
+                      {buttonLabel()}
+                    </button>
+
+                    {errorMsg && (
+                      <p className="text-[11px] text-destructive/80 text-center">{errorMsg}</p>
+                    )}
+                  </>
+                )}
 
                 <ul className="space-y-3 text-sm">
                   <li className="flex items-start gap-3 text-muted-foreground"><Bullet /> Unlimited subscriptions</li>
@@ -268,13 +340,12 @@ export default function PricingPage() {
                   <span className="text-sm text-muted-foreground">/ per month</span>
                 </div>
               </div>
-              <button
-                onClick={handleUpgrade}
-                disabled={isLoading}
-                className="block w-full rounded-xl border border-border bg-card/60 py-3 text-center text-sm font-medium hover:bg-card disabled:opacity-60"
+              <Link
+                href={isLoggedIn ? "/dashboard" : "/register"}
+                className="block w-full rounded-xl border border-border bg-card/60 py-3 text-center text-sm font-medium hover:bg-card"
               >
-                {isLoading ? "Processing…" : "Start family audit"}
-              </button>
+                {isLoggedIn ? "Go to dashboard" : "Start family audit"}
+              </Link>
               <ul className="space-y-3 text-sm">
                 <li className="flex items-start gap-3 text-muted-foreground"><Bullet /> Everything in Pro</li>
                 <li className="flex items-start gap-3 text-muted-foreground"><Bullet /> Up to 4 linked household members</li>

@@ -31,6 +31,8 @@ export default function SettingsPage() {
   const [referralInput, setReferralInput] = useState("");
   const [referralApplied, setReferralApplied] = useState(false);
   const [referralStatus, setReferralStatus] = useState<"idle" | "applying" | "success" | "error">("idle");
+  const [manageLoading, setManageLoading] = useState(false);
+  const [manageError, setManageError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -78,6 +80,24 @@ export default function SettingsPage() {
   const handleUpgrade = () => {
     setUpgrading(true);
     router.push("/pricing");
+  };
+
+  const handleManage = async () => {
+    setManageLoading(true);
+    setManageError(null);
+    try {
+      const res = await fetch("/api/razorpay/portal", { method: "POST" });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setManageError(data.error || "Could not load billing portal.");
+        setManageLoading(false);
+      }
+    } catch {
+      setManageError("Network error. Please try again.");
+      setManageLoading(false);
+    }
   };
 
   if (isLoading) {
@@ -185,13 +205,23 @@ export default function SettingsPage() {
                 </div>
 
                 {user?.plan === "pro" ? (
-                  <Link
-                    href="/api/razorpay/portal"
-                    className="shrink-0 rounded-lg bg-gradient-to-br from-violet to-violet-dim px-4 py-2 text-xs font-medium text-primary-foreground shadow-[0_18px_60px_-12px_rgba(167,139,250,0.45)] hover:opacity-95 inline-flex items-center gap-1.5"
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                    MANAGE
-                  </Link>
+                  <div className="flex flex-col items-end gap-2">
+                    <button
+                      onClick={handleManage}
+                      disabled={manageLoading}
+                      className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-br from-violet to-violet-dim px-4 py-2 text-xs font-medium text-primary-foreground shadow-[0_18px_60px_-12px_rgba(167,139,250,0.45)] hover:opacity-95 disabled:opacity-60 transition-all duration-200"
+                    >
+                      {manageLoading ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <ExternalLink className="h-3 w-3" />
+                      )}
+                      {manageLoading ? "Loading…" : "MANAGE"}
+                    </button>
+                    {manageError && (
+                      <p className="text-[10px] text-destructive/80 text-right max-w-[200px]">{manageError}</p>
+                    )}
+                  </div>
                 ) : (
                   <button
                     onClick={handleUpgrade}

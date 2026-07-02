@@ -2,10 +2,11 @@
 
 // components/landing/hero.tsx — asymmetric hero with full Three.js stage + scroll-driven reveal.
 
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, PlayCircle, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, PlayCircle, ShieldCheck, Sparkles, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const HeroScene = dynamic(
@@ -32,12 +33,22 @@ const fade = {
 };
 
 export function Hero() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.ok && r.json())
+      .then((d) => setIsLoggedIn(!!d?.user))
+      .catch(() => setIsLoggedIn(false))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <section className="relative isolate overflow-hidden pt-28 pb-24 sm:pt-36 sm:pb-32">
       {/* Three.js stage — fills full hero, sits behind copy. */}
       <div className="absolute inset-0 -z-10">
         <HeroScene />
-        {/* Edges softly feather out so text reads on top */}
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_55%_45%_at_30%_55%,transparent_55%,hsl(var(--background))_100%)]" />
         <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-background/95 via-background/70 to-transparent" />
       </div>
@@ -90,15 +101,28 @@ export function Hero() {
             custom={3}
             className="mt-9 flex flex-col sm:flex-row items-center gap-3 sm:gap-4"
           >
-            <Link href="/register" className="w-full sm:w-auto">
-              <Button
-                size="lg"
-                className="group h-12 w-full px-7 text-base gap-2 sm:w-auto bg-gradient-to-br from-violet to-violet-dim text-primary-foreground shadow-[0_18px_60px_-12px_rgba(167,139,250,0.5)] hover:shadow-[0_18px_60px_-6px_rgba(167,139,250,0.7)] transition-shadow"
-              >
-                Start tracking — Free
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </Button>
-            </Link>
+            {!loading && isLoggedIn ? (
+              <Link href="/dashboard" className="w-full sm:w-auto">
+                <Button
+                  size="lg"
+                  className="group h-12 w-full px-7 text-base gap-2 sm:w-auto bg-gradient-to-br from-violet to-violet-dim text-primary-foreground shadow-[0_18px_60px_-12px_rgba(167,139,250,0.5)] hover:shadow-[0_18px_60px_-6px_rgba(167,139,250,0.7)] transition-shadow"
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                  Go to dashboard
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                </Button>
+              </Link>
+            ) : (
+              <Link href="/register" className="w-full sm:w-auto">
+                <Button
+                  size="lg"
+                  className="group h-12 w-full px-7 text-base gap-2 sm:w-auto bg-gradient-to-br from-violet to-violet-dim text-primary-foreground shadow-[0_18px_60px_-12px_rgba(167,139,250,0.5)] hover:shadow-[0_18px_60px_-6px_rgba(167,139,250,0.7)] transition-shadow"
+                >
+                  Start tracking — Free
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                </Button>
+              </Link>
+            )}
             <Link href="#features" className="w-full sm:w-auto">
               <Button
                 variant="ghost"
