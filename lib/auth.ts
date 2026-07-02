@@ -63,39 +63,17 @@ export const authOptions = {
   },
   pages: { signIn: "/login" },
   callbacks: {
-    async jwt({ token, user, account }: any) {
-      if (account) {
-        token.provider = account.provider;
-      }
+    async jwt({ token, user }: any) {
       if (user) {
         token.id = user.id;
-        token.email = user.email;
-        token.name = user.name;
       }
       return token;
     },
     async session({ session, token }: any) {
       if (token) {
         session.user.id = token.id as string;
-        session.user.email = token.email as string;
-        session.user.name = token.name as string;
       }
       return session;
-    },
-    async signIn({ user, account, profile }: any) {
-      try {
-        if (account?.provider === "google" && profile?.email) {
-          // Check if user exists; linked by existing account or create new
-          const existingUser = await prisma.user.findUnique({
-            where: { email: profile.email },
-          });
-          return true; // let NextAuth handle account linking via adapter
-        }
-        return true;
-      } catch (e) {
-        console.error("signIn callback error:", e);
-        return false;
-      }
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
