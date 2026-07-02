@@ -1,5 +1,8 @@
 // app/page.tsx — landing entry. Wires Hero, Features, Pricing, Footer in dark theme.
 
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Hero } from "@/components/landing/hero";
 import { Features } from "@/components/landing/features";
 import { LandingHeader } from "@/components/landing/landing-header";
