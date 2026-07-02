@@ -135,7 +135,7 @@ export function PricingSection() {
                 )}
 
                 <div className="space-y-6">
-                  <div>
+                  <div className="pb-4">
                     <div className="chip-mono text-[10px] text-primary">{plan.tag}</div>
                     <h3 className="mt-3 font-display text-2xl tracking-tightest">{plan.name}</h3>
                     <p className="mt-1 text-sm text-muted-foreground">{plan.blurb}</p>

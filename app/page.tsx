@@ -1,65 +1,15 @@
 // app/page.tsx — landing entry. Wires Hero, Features, Pricing, Footer in dark theme.
 
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Hero } from "@/components/landing/hero";
 import { Features } from "@/components/landing/features";
+import { LandingHeader } from "@/components/landing/landing-header";
 import { PricingSection } from "@/components/landing/pricing-section";
 import { Footer } from "@/components/landing/footer";
 
 export default function LandingPage() {
   return (
     <main className="min-h-screen">
-      {/* Sticky header */}
-      <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/70 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="relative h-8 w-8 overflow-hidden rounded-lg bg-gradient-to-br from-violet via-violet-glow to-cyan-glow">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_30%,rgba(255,255,255,.4),transparent)]" />
-              <span className="absolute inset-0 grid place-items-center font-display text-base text-primary-foreground">
-                S
-            </span>
-          </div>
-            <span className="font-display text-xl tracking-tightest text-foreground">
-              SubAuditor
-          </span>
-        </Link>
-          <nav className="hidden items-center gap-7 md:flex">
-            <Link href="/" className="chip-mono text-[11px] text-muted-foreground transition-colors hover:text-foreground">
-              HOME
-            </Link>
-            <a
-              href="#features"
-              className="chip-mono text-[11px] text-muted-foreground transition-colors hover:text-foreground"
-            >
-              FEATURES
-          </a>
-            <a
-              href="#pricing"
-              className="chip-mono text-[11px] text-muted-foreground transition-colors hover:text-foreground"
-            >
-              PRICING
-          </a>
-        </nav>
-          <div className="flex items-center gap-2">
-            <Link href="/login">
-              <Button variant="ghost" size="sm" className="text-foreground/80">
-                Log in
-            </Button>
-          </Link>
-            <Link href="/register">
-              <Button
-                size="sm"
-                className="gap-1.5 bg-gradient-to-br from-violet to-violet-dim text-primary-foreground hover:opacity-95"
-              >
-                Get started
-                <ArrowRight className="h-3.5 w-3.5" />
-            </Button>
-          </Link>
-        </div>
-      </div>
-    </header>
+      <LandingHeader />
 
       {/* Client-side sections */}
       <Hero />

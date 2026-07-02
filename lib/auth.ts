@@ -51,6 +51,7 @@ export const authOptions = {
           GoogleProvider({
             clientId: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+            allowDangerousEmailAccountLinking: true,
           }),
         ]
       : []),
@@ -62,35 +63,42 @@ export const authOptions = {
   },
   pages: { signIn: "/login" },
   callbacks: {
-    async jwt({ token, user }: any) {
+    async jwt({ token, user, account }: any) {
+      if (account) {
+        token.provider = account.provider;
+      }
       if (user) {
         token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
       }
       return token;
     },
     async session({ session, token }: any) {
-      if (session.user && token.id) {
-        session.user.id = token.id;
+      if (token) {
+        session.user.id = token.id as string;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
       }
       return session;
     },
-  },
-  secret: process.env.NEXTAUTH_SECRET,
-  cookies: {
-    sessionToken: {
-      name: `${
-        process.env.NEXTAUTH_URL?.startsWith("https://")
-          ? "__Secure-"
-          : ""
-      }next-auth.session-token`,
-      options: {
-        httpOnly: true,
-        sameSite: "lax" as const,
-        path: "/",
-        secure: !!process.env.NEXTAUTH_URL?.startsWith("https://"),
-      },
+    async signIn({ user, account, profile }: any) {
+      try {
+        if (account?.provider === "google" && profile?.email) {
+          // Check if user exists; linked by existing account or create new
+          const existingUser = await prisma.user.findUnique({
+            where: { email: profile.email },
+          });
+          return true; // let NextAuth handle account linking via adapter
+        }
+        return true;
+      } catch (e) {
+        console.error("signIn callback error:", e);
+        return false;
+      }
     },
   },
+  secret: process.env.NEXTAUTH_SECRET,
 };
 
 const SESSION_COOKIE_NAME =
