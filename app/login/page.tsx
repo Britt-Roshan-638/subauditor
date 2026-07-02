@@ -2,9 +2,9 @@
 
 // app/login/page.tsx — splitscreen auth shell, credentials + Google.
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
@@ -12,10 +12,20 @@ import { AuthShell, GoogleSignInButton, FormField } from "@/components/auth-shel
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Show OAuth error from URL params
+  useEffect(() => {
+    const errorParam = searchParams.get("error");
+    const errorDescParam = searchParams.get("error_description");
+    if (errorParam) {
+      setError(errorDescParam || `Authentication error: ${errorParam}`);
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
