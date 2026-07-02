@@ -182,7 +182,7 @@ export default function PricingPage() {
           <motion.div
             variants={{
               hidden: { opacity: 0, y: 16 },
-              visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: "easeOut" } },
+              visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: "easeOut" as const } },
             }}
           >
           <div className="rounded-3xl border border-border bg-card/30 p-8">
@@ -347,7 +347,7 @@ export default function PricingPage() {
           <motion.div
             variants={{
               hidden: { opacity: 0, y: 16 },
-              visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: "easeOut" } },
+              visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: "easeOut" as const } },
             }}
           >
           <div className="rounded-3xl border border-border bg-card/30 p-8">

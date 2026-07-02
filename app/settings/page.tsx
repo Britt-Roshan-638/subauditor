@@ -137,7 +137,7 @@ export default function SettingsPage() {
           <motion.div
             variants={{
               hidden: { opacity: 0, y: 12 },
-              visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
+              visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" as const } },
             }}
           >
           <Section title="Profile">
@@ -150,7 +150,7 @@ export default function SettingsPage() {
           <motion.div
             variants={{
               hidden: { opacity: 0, y: 12 },
-              visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
+              visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" as const } },
             }}
           >
           <Section
@@ -201,7 +201,7 @@ export default function SettingsPage() {
           <motion.div
             variants={{
               hidden: { opacity: 0, y: 12 },
-              visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
+              visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" as const } },
             }}
           >
           <Section title="Billing">
@@ -319,7 +319,7 @@ export default function SettingsPage() {
             <motion.div
               variants={{
                 hidden: { opacity: 0, y: 12 },
-                visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
+                visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" as const } },
               }}
             >
             <Section title="Have a referral code?">
@@ -361,7 +361,7 @@ export default function SettingsPage() {
           <motion.div
             variants={{
               hidden: { opacity: 0, y: 12 },
-              visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
+              visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" as const } },
             }}
           >
           <Section title="🧪 Test mode">
@@ -460,7 +460,7 @@ export default function SettingsPage() {
           <motion.div
             variants={{
               hidden: { opacity: 0, y: 12 },
-              visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
+              visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" as const } },
             }}
           >
           <Section title="Session">

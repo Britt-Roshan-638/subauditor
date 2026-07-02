@@ -27,12 +27,12 @@ import { motion } from "framer-motion";
 const stagger = {
   container: {
     visible: { transition: { staggerChildren: 0.07, delayChildren: 0.15 } },
-  },
+  } as const,
   item: {
     hidden: { opacity: 0, y: 14 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
   },
-};
+} as const;
 
 export default function DashboardPage() {
   const { data: session } = useSession();
