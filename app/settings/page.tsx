@@ -33,6 +33,8 @@ export default function SettingsPage() {
   const [referralStatus, setReferralStatus] = useState<"idle" | "applying" | "success" | "error">("idle");
   const [manageLoading, setManageLoading] = useState(false);
   const [manageError, setManageError] = useState<string | null>(null);
+  const [seedStatus, setSeedStatus] = useState<"idle" | "seeding" | "resetting" | "done" | "error">("idle");
+  const [seedMessage, setSeedMessage] = useState("");
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -317,6 +319,98 @@ export default function SettingsPage() {
               )}
             </Section>
           )}
+
+          {/* Test Mode — only shown to the current user */}
+          <Section title="🧪 Test mode">
+            <div className="rounded-2xl border border-border bg-card/40 p-5">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="text-sm font-medium">Generate test data</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Populate your dashboard with realistic demo subscriptions, price changes,
+                    and stats — no real bank connection or Razorpay needed.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <button
+                  onClick={async () => {
+                    setSeedStatus("seeding");
+                    setSeedMessage("");
+                    try {
+                      const res = await fetch("/api/admin/seed?pro=true", { method: "POST" });
+                      const data = await res.json();
+                      if (data.success) {
+                        setSeedStatus("done");
+                        setSeedMessage(
+                          `✓ ${data.created} subscriptions created. ${data.totalMonthlySpend > 0 ? `Total: $${data.totalMonthlySpend}/mo. ` : ""}${data.plan === "pro" ? "Plan → Pro." : ""}`
+                        );
+                        // Reload user data
+                        fetch("/api/auth/me")
+                          .then(r => r.ok && r.json())
+                          .then(d => d?.user && setUser(d.user))
+                          .catch(() => {});
+                      } else {
+                        setSeedStatus("error");
+                        setSeedMessage(data.error || "Failed to seed data.");
+                      }
+                    } catch {
+                      setSeedStatus("error");
+                      setSeedMessage("Network error. Try again.");
+                    }
+                  }}
+                  disabled={seedStatus === "seeding"}
+                  className="rounded-lg bg-gradient-to-br from-violet to-violet-dim px-4 py-2 text-xs font-medium text-primary-foreground disabled:opacity-50 hover:opacity-95"
+                >
+                  {seedStatus === "seeding" ? (
+                    <><Loader2 className="mr-1.5 inline h-3.5 w-3.5 animate-spin" /> Seeding…</>
+                  ) : (
+                    "Seed test subscriptions + Pro"
+                  )}
+                </button>
+
+                <button
+                  onClick={async () => {
+                    setSeedStatus("resetting");
+                    try {
+                      const res = await fetch("/api/admin/seed?reset=true", { method: "POST" });
+                      const data = await res.json();
+                      if (res.ok) {
+                        setSeedStatus("done");
+                        setSeedMessage("✓ All test subscriptions cleared.");
+                        fetch("/api/auth/me")
+                          .then(r => r.ok && r.json())
+                          .then(d => d?.user && setUser(d.user))
+                          .catch(() => {});
+                      }
+                    } catch {
+                      setSeedStatus("error");
+                      setSeedMessage("Failed to reset.");
+                    }
+                  }}
+                  disabled={seedStatus === "resetting"}
+                  className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-2 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50"
+                >
+                  {seedStatus === "resetting" ? "Clearing…" : "Clear test data"}
+                </button>
+              </div>
+
+              {seedMessage && (
+                <p className={`mt-3 text-xs ${seedStatus === "error" ? "text-destructive" : "text-emerald-400"}`}>
+                  {seedMessage}
+                </p>
+              )}
+
+              <div className="mt-5 border-t border-border/50 pt-5">
+                <div className="text-sm font-medium">Pro status</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Your current plan: <span className="font-mono text-violet-glow">{user?.plan || "free"}</span>.
+                  Use the button above to grant Pro access without paying.
+                </p>
+              </div>
+            </div>
+          </Section>
 
           {/* Session */}
           <Section title="Session">
