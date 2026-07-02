@@ -169,8 +169,22 @@ export default function PricingPage() {
       </section>
 
       <section className="mx-auto max-w-6xl px-6 pb-20">
-        <div className="grid gap-6 md:grid-cols-3">
+        <motion.div
+          className="grid gap-6 md:grid-cols-3"
+          initial="hidden"
+          animate="visible"
+          variants={{
+            visible: { transition: { staggerChildren: 0.1, delayChildren: 0.25 } },
+            hidden: {},
+          }}
+        >
           {/* Free */}
+          <motion.div
+            variants={{
+              hidden: { opacity: 0, y: 16 },
+              visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: "easeOut" } },
+            }}
+          >
           <div className="rounded-3xl border border-border bg-card/30 p-8">
             <div className="space-y-6">
               <div>
@@ -196,6 +210,7 @@ export default function PricingPage() {
               </ul>
             </div>
           </div>
+          </motion.div>
 
           {/* Pro */}
           <motion.div
@@ -329,6 +344,12 @@ export default function PricingPage() {
           </motion.div>
 
           {/* Family */}
+          <motion.div
+            variants={{
+              hidden: { opacity: 0, y: 16 },
+              visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: "easeOut" } },
+            }}
+          >
           <div className="rounded-3xl border border-border bg-card/30 p-8">
             <div className="space-y-6">
               <div>
@@ -355,7 +376,8 @@ export default function PricingPage() {
               </ul>
             </div>
           </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         <p className="mt-12 text-center text-xs text-muted-foreground">
           All plans include 256-bit encryption and full data export. Cancel any time.

@@ -1,9 +1,10 @@
+// components/subscription-card.tsx — single subscription row for the dashboard list.
+// Uses a plain bordered div (no Card wrapper) so it fits cleanly inside the dashboard's list Card.
+
 import { formatCurrency, formatRelativeDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   MoreVertical,
-  AlertTriangle,
   CheckCircle2,
   XCircle,
   Clock,
@@ -37,25 +38,21 @@ const statusConfig = {
     label: "Active",
     icon: CheckCircle2,
     variant: "success" as const,
-    dotColor: "bg-green-500",
   },
   inactive: {
     label: "Inactive",
     icon: XCircle,
     variant: "secondary" as const,
-    dotColor: "bg-gray-400",
   },
   cancelled: {
     label: "Cancelled",
     icon: XCircle,
     variant: "destructive" as const,
-    dotColor: "bg-red-500",
   },
   trial: {
     label: "Trial",
     icon: Clock,
     variant: "warning" as const,
-    dotColor: "bg-amber-500",
   },
 };
 
@@ -87,84 +84,80 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
     categoryColors[subscription.category] || categoryColors["Other"];
 
   return (
-    <Card className="group hover:shadow-md transition-all">
-      <CardContent className="p-4 sm:p-5">
-        <div className="flex items-center gap-4">
-          {/* Icon placeholder */}
-          <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 flex items-center justify-center shrink-0">
-            {subscription.iconUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={subscription.iconUrl}
-                alt={subscription.name}
-                className="h-6 w-6 rounded"
-              />
-            ) : (
-              <span className="text-lg font-bold text-slate-500 dark:text-slate-400">
-                {subscription.name.charAt(0).toUpperCase()}
-              </span>
-            )}
-          </div>
+    <div className="group flex items-center gap-4 rounded-xl border border-transparent bg-transparent px-3 py-4 transition-all hover:bg-accent/30 hover:border-border/60 sm:px-4">
+      {/* Icon placeholder */}
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700">
+        {subscription.iconUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={subscription.iconUrl}
+            alt={subscription.name}
+            className="h-6 w-6 rounded"
+          />
+        ) : (
+          <span className="text-lg font-bold text-slate-500 dark:text-slate-400">
+            {subscription.name.charAt(0).toUpperCase()}
+          </span>
+        )}
+      </div>
 
-          {/* Main info */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-semibold text-foreground truncate">
-                {subscription.name}
-              </h3>
-              <Badge variant={status.variant} className="text-xs shrink-0">
-                <StatusIcon className="h-3 w-3 mr-1" />
-                {status.label}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <span
-                className={`text-xs px-2 py-0.5 rounded-full font-medium ${categoryColor}`}
-              >
-                {subscription.category}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {frequencyLabels[subscription.frequency]}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                Last: {formatRelativeDate(subscription.lastChargeDate)}
-              </span>
-            </div>
-          </div>
-
-          {/* Amount & actions */}
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="text-right">
-              <p className="font-bold text-foreground">
-                {formatCurrency(subscription.amount)}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {subscription.frequency === "monthly"
-                  ? "/mo"
-                  : `/${subscription.frequency.replace("_", " ")}`}
-              </p>
-            </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem>View Details</DropdownMenuItem>
-                <DropdownMenuItem>Edit</DropdownMenuItem>
-                <DropdownMenuItem className="text-destructive focus:text-destructive">
-                  Cancel Subscription
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+      {/* Main info */}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          <h3 className="truncate font-semibold text-foreground">
+            {subscription.name}
+          </h3>
+          <Badge variant={status.variant} className="shrink-0 text-xs">
+            <StatusIcon className="mr-1 h-3 w-3" />
+            {status.label}
+          </Badge>
         </div>
-      </CardContent>
-    </Card>
+        <div className="mt-1 flex items-center gap-2 flex-wrap">
+          <span
+            className={`rounded-full px-2 py-0.5 text-xs font-medium ${categoryColor}`}
+          >
+            {subscription.category}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {frequencyLabels[subscription.frequency]}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            Last: {formatRelativeDate(subscription.lastChargeDate)}
+          </span>
+        </div>
+      </div>
+
+      {/* Amount & actions */}
+      <div className="flex shrink-0 items-center gap-3">
+        <div className="text-right">
+          <p className="font-bold text-foreground">
+            {formatCurrency(subscription.amount)}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {subscription.frequency === "monthly"
+              ? "/mo"
+              : `/${subscription.frequency.replace("_", " ")}`}
+          </p>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
+            >
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem>View Details</DropdownMenuItem>
+            <DropdownMenuItem>Edit</DropdownMenuItem>
+            <DropdownMenuItem className="text-destructive focus:text-destructive">
+              Cancel Subscription
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
   );
 }

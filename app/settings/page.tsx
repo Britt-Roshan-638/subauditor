@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/header";
+import { motion } from "framer-motion";
 import { Landmark, LogOut, Check, RefreshCcw, CreditCard, Banknote, Gift, Copy, Loader2, ExternalLink } from "lucide-react";
 
 interface UserProfile {
@@ -123,14 +124,35 @@ export default function SettingsPage() {
           Settings
         </h1>
 
-        <div className="mt-10 space-y-8">
-          {/* Profile */}
+        <motion.div
+          className="mt-10 space-y-8"
+          initial="hidden"
+          animate="visible"
+          variants={{
+            visible: { transition: { staggerChildren: 0.08, delayChildren: 0.12 } },
+            hidden: {},
+          }}
+        >
+          {/* Profile — animated item */}
+          <motion.div
+            variants={{
+              hidden: { opacity: 0, y: 12 },
+              visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
+            }}
+          >
           <Section title="Profile">
             <Row label="Name" value={user?.name || "—"} />
             <Row label="Email" value={user?.email || "—"} />
           </Section>
+          </motion.div>
 
-          {/* Bank */}
+          {/* Bank — animated */}
+          <motion.div
+            variants={{
+              hidden: { opacity: 0, y: 12 },
+              visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
+            }}
+          >
           <Section
             title="Bank account"
             action={
@@ -173,8 +195,15 @@ export default function SettingsPage() {
               </ul>
             )}
           </Section>
+          </motion.div>
 
-          {/* Billing */}
+          {/* Billing — animated */}
+          <motion.div
+            variants={{
+              hidden: { opacity: 0, y: 12 },
+              visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
+            }}
+          >
           <Section title="Billing">
             <div className="rounded-2xl border border-border bg-card/40 p-5">
               <div className="flex items-start justify-between">
@@ -283,9 +312,16 @@ export default function SettingsPage() {
               </div>
             )}
           </Section>
+          </motion.div>
 
-          {/* Apply a referral code */}
+          {/* Apply a referral code — animated */}
           {user?.plan === "free" && !referralApplied && (
+            <motion.div
+              variants={{
+                hidden: { opacity: 0, y: 12 },
+                visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
+              }}
+            >
             <Section title="Have a referral code?">
               <div className="flex items-center gap-3">
                 <input
@@ -318,9 +354,16 @@ export default function SettingsPage() {
                 </p>
               )}
             </Section>
+            </motion.div>
           )}
 
-          {/* Test Mode — only shown to the current user */}
+          {/* Test Mode — animated */}
+          <motion.div
+            variants={{
+              hidden: { opacity: 0, y: 12 },
+              visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
+            }}
+          >
           <Section title="🧪 Test mode">
             <div className="rounded-2xl border border-border bg-card/40 p-5">
               <div className="flex items-start justify-between">
@@ -411,8 +454,15 @@ export default function SettingsPage() {
               </div>
             </div>
           </Section>
+          </motion.div>
 
-          {/* Session */}
+          {/* Session — animated */}
+          <motion.div
+            variants={{
+              hidden: { opacity: 0, y: 12 },
+              visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
+            }}
+          >
           <Section title="Session">
             <Link
               href="/api/auth/signout"
@@ -422,7 +472,8 @@ export default function SettingsPage() {
               Log out everywhere
             </Link>
           </Section>
-        </div>
+          </motion.div>
+        </motion.div>
       </main>
     </div>
   );

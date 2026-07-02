@@ -1,4 +1,5 @@
-// app/dashboard/page.tsx — main subscriber dashboard with real data from database.
+// app/dashboard/page.tsx — main subscriber dashboard with framer-motion entrance animations,
+// proper spacing between subscription cards & price history, and scrollable "Review waste".
 
 "use client";
 
@@ -16,11 +17,22 @@ import {
   Landmark,
   Plus,
   Sparkles,
-  TrendingUp,
+  ArrowDown,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
+import { motion } from "framer-motion";
+
+const stagger = {
+  container: {
+    visible: { transition: { staggerChildren: 0.07, delayChildren: 0.15 } },
+  },
+  item: {
+    hidden: { opacity: 0, y: 14 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
+  },
+};
 
 export default function DashboardPage() {
   const { data: session } = useSession();
@@ -29,20 +41,19 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<any>(null);
+  const subsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function fetchDashboardData() {
       try {
         setIsLoading(true);
 
-        // Fetch subscriptions
         const subsResponse = await fetch("/api/subscriptions");
         if (!subsResponse.ok) {
           throw new Error(`Failed to fetch subscriptions: ${subsResponse.status}`);
         }
         const subsData = await subsResponse.json();
 
-        // Fetch stats
         const statsResponse = await fetch("/api/subscriptions/stats");
         if (!statsResponse.ok) {
           throw new Error(`Failed to fetch stats: ${statsResponse.status}`);
@@ -61,6 +72,10 @@ export default function DashboardPage() {
 
     fetchDashboardData();
   }, []);
+
+  const scrollToSubscriptions = () => {
+    subsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   if (isLoading) {
     return (
@@ -92,7 +107,6 @@ export default function DashboardPage() {
     );
   }
 
-  // Calculate values from subscriptions or use stats
   const totalMonthly = stats?.totalMonthlySpend || 0;
   const activeCount = stats?.totalSubscriptions || subscriptions.filter((s: any) => s.status === "active").length;
   const wasteScore = stats?.wasteScore || 0;
@@ -104,7 +118,12 @@ export default function DashboardPage() {
 
       <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
         {/* Page header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-10">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-10"
+        >
           <div>
             <div className="chip-mono text-[11px] text-muted-foreground">
               YOUR SUBSCRIPTIONS • {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
@@ -119,8 +138,6 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            {/* Check if user has connected bank accounts (Plaid accounts) */}
-            {/* For now, we'll show connected if we have any subscriptions (could be improved with a dedicated API call) */}
             {subscriptions.length > 0 ? (
               <Button variant="outline" className="gap-2 border-emerald-400/30 bg-emerald-400/5 text-emerald-400 hover:bg-emerald-400/10 hover:text-emerald-300">
                 <span className="relative flex h-2 w-2">
@@ -136,127 +153,164 @@ export default function DashboardPage() {
               </Button>
             )}
           </div>
-        </div>
+        </motion.div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <StatsCard
-            icon={DollarSign}
-            label="Monthly spend"
-            value={"$" + totalMonthly.toFixed(2)}
-            trend={{ value: 12, label: "vs prior mo." }}
-            trendDirection="up"
-            iconColor="text-champagne"
-            iconBgColor="bg-champagne/10"
-          />
-          <StatsCard
-            icon={CreditCard}
-            label="Active subs"
-            value={activeCount.toString()}
-            trend={{ value: 2, label: "new this mo." }}
-            trendDirection="up"
-            iconColor="text-violet-glow"
-            iconBgColor="bg-violet/10"
-          />
-          <StatsCard
-            icon={Gauge}
-            label="Waste score"
-            value={wasteScore + "%"}
-            trend={{ value: 8, label: "improved" }}
-            trendDirection="down"
-            iconColor="text-success"
-            iconBgColor="bg-success/10"
-          />
-          <StatsCard
-            icon={PiggyBank}
-            label="Stop-bleed potential"
-            value={"$" + potentialSavings.toFixed(2)}
-            trend={{ value: 23, label: "vs prior mo." }}
-            trendDirection="up"
-            iconColor="text-cyan-glow"
-            iconBgColor="bg-accent/10"
-          />
-        </div>
+        {/* Stats — stagger-fade from below */} 
+        <motion.div
+          variants={stagger.container}
+          initial="hidden"
+          animate="visible"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
+        >
+          <motion.div variants={stagger.item}>
+            <StatsCard
+              icon={DollarSign}
+              label="Monthly spend"
+              value={"$" + totalMonthly.toFixed(2)}
+              trend={{ value: 12, label: "vs prior mo." }}
+              trendDirection="up"
+              iconColor="text-champagne"
+              iconBgColor="bg-champagne/10"
+            />
+          </motion.div>
+          <motion.div variants={stagger.item}>
+            <StatsCard
+              icon={CreditCard}
+              label="Active subs"
+              value={activeCount.toString()}
+              trend={{ value: 2, label: "new this mo." }}
+              trendDirection="up"
+              iconColor="text-violet-glow"
+              iconBgColor="bg-violet/10"
+            />
+          </motion.div>
+          <motion.div variants={stagger.item}>
+            <StatsCard
+              icon={Gauge}
+              label="Waste score"
+              value={wasteScore + "%"}
+              trend={{ value: 8, label: "improved" }}
+              trendDirection="down"
+              iconColor="text-success"
+              iconBgColor="bg-success/10"
+            />
+          </motion.div>
+          <motion.div variants={stagger.item}>
+            <StatsCard
+              icon={PiggyBank}
+              label="Stop-bleed potential"
+              value={"$" + potentialSavings.toFixed(2)}
+              trend={{ value: 23, label: "vs prior mo." }}
+              trendDirection="up"
+              iconColor="text-cyan-glow"
+              iconBgColor="bg-accent/10"
+            />
+          </motion.div>
+        </motion.div>
 
         {/* Subscriptions list */}
-        {subscriptions.length > 0 ? (
-          <Card className="overflow-hidden border-border bg-card/30">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-border/50">
-              <div>
-                <CardTitle className="font-display text-2xl tracking-tightest">
-                  Subscriptions
-                </CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Sorted by monthly cost, descending.
-                </p>
-              </div>
-              <Button size="sm" variant="outline" className="gap-2 border-border">
-                <Plus className="h-4 w-4" />
-                Add manual
-              </Button>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="divide-y divide-border/50">
+        <motion.div
+          ref={subsRef}
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.25 }}
+        >
+          {subscriptions.length > 0 ? (
+            <Card className="overflow-hidden border-border bg-card/30">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-border/50">
+                <div>
+                  <CardTitle className="font-display text-2xl tracking-tightest">
+                    Subscriptions
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Sorted by monthly cost, descending.
+                  </p>
+                </div>
+                <Button size="sm" variant="outline" className="gap-2 border-border">
+                  <Plus className="h-4 w-4" />
+                  Add manual
+                </Button>
+              </CardHeader>
+              <CardContent className="p-0">
                 {subscriptions
                   .slice()
                   .sort((a: any, b: any) => {
-                    // Normalize to monthly for sorting
                     const freqMultiplier = (freq: string) => {
-                      if (freq === "weekly") return 4.33; // weeks per month
-                      if (freq === "yearly") return 1 / 12; // months per year
-                      return 1; // monthly or other
+                      if (freq === "weekly") return 4.33;
+                      if (freq === "yearly") return 1 / 12;
+                      return 1;
                     };
                     const monthlyA = a.amount * freqMultiplier(a.frequency);
                     const monthlyB = b.amount * freqMultiplier(b.frequency);
                     return monthlyB - monthlyA;
                   })
-                  .map((subscription: any) => (
-                    <div key={subscription.id} className="px-4 sm:px-6">
-                      <SubscriptionCard subscription={subscription} />
-                      {subscription.PriceChange?.length > 0 && (
-                        <div className="pb-4">
-                          <HistoryCard
-                            priceChanges={subscription.PriceChange}
-                            subscriptionName={subscription.name}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="mt-8 overflow-hidden border-border bg-card/30">
-            <CardContent className="p-6 text-center">
-              <p className="text-muted-foreground">No subscriptions found. Connect your bank account to start tracking.</p>
-              <Link href="/onboarding">
-                <Button className="mt-4">Connect Bank Account</Button>
-              </Link>
-            </CardContent>
-          </Card>
-        )}
+                  .map((subscription: any, idx: number) => (
+                    <motion.div
+                      key={subscription.id}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3, delay: 0.3 + idx * 0.05 }}
+                    >
+                      {/* Subscription row with hover background */}
+                      <div className="border-b border-border/30 last:border-b-0">
+                        <SubscriptionCard subscription={subscription} />
 
-        {/* Insight card - only show if we have data */}
+                        {/* Price history — spaced away from the card */}
+                        {subscription.PriceChange?.length > 0 && (
+                          <div className="px-4 pb-4 sm:px-5">
+                            <div className="ml-1 border-l-2 border-champagne/20 pl-4">
+                              <HistoryCard
+                                priceChanges={subscription.PriceChange}
+                                subscriptionName={subscription.name}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="overflow-hidden border-border bg-card/30">
+              <CardContent className="p-6 text-center">
+                <p className="text-muted-foreground">No subscriptions found. Connect your bank account to start tracking.</p>
+                <Link href="/onboarding">
+                  <Button className="mt-4">Connect Bank Account</Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+        </motion.div>
+
+        {/* Insight card — scrolls to subs instead of linking to settings */}
         {subscriptions.length > 0 && (
-          <Card className="mt-8 overflow-hidden border-primary/30 bg-gradient-to-br from-violet/10 via-violet/5 to-transparent">
-            <CardContent className="p-6 sm:p-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="chip-mono text-[11px] text-primary">
-                  <Sparkles className="mr-1.5 inline h-3 w-3" /> INSIGHT
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.6 }}
+          >
+            <Card className="mt-8 overflow-hidden border-primary/30 bg-gradient-to-br from-violet/10 via-violet/5 to-transparent">
+              <CardContent className="p-6 sm:p-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="chip-mono text-[11px] text-primary">
+                    <Sparkles className="mr-1.5 inline h-3 w-3" /> INSIGHT
+                  </div>
+                  <h3 className="mt-2 font-display text-xl tracking-tightest">
+                    You could save <span className="text-gradient-violet">${potentialSavings.toFixed(2)}/mo</span> by
+                    reviewing two unused subscriptions.
+                  </h3>
                 </div>
-                <h3 className="mt-2 font-display text-xl tracking-tightest">
-                  You could save <span className="text-gradient-violet">$${potentialSavings.toFixed(2)}/mo</span> by
-                  canceling two unused subscriptions.
-                </h3>
-              </div>
-              <Link href="/settings">
-                <Button className="gap-2 bg-gradient-to-br from-violet to-violet-dim text-primary-foreground shadow-[0_18px_60px_-12px_rgba(167,139,250,0.45)]">
-                  Review waste
+                <Button
+                  onClick={scrollToSubscriptions}
+                  className="gap-2 bg-gradient-to-br from-violet to-violet-dim text-primary-foreground shadow-[0_18px_60px_-12px_rgba(167,139,250,0.45)] hover:shadow-[0_18px_60px_-6px_rgba(167,139,250,0.65)] transition-all duration-300"
+                >
+                  <ArrowDown className="h-4 w-4" />
+                  Review subscriptions
                 </Button>
-              </Link>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </motion.div>
         )}
       </main>
     </div>
