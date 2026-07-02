@@ -25,6 +25,12 @@ export default function OnboardingPage() {
     async function fetchLinkToken() {
       try {
         const res = await fetch("/api/plaid/link-token");
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          setError(body.error || `Failed to initialize bank connection (${res.status})`);
+          setLoading(false);
+          return;
+        }
         const data = await res.json();
         if (data.linkToken) {
           setLinkToken(data.linkToken);
@@ -54,7 +60,7 @@ export default function OnboardingPage() {
           await fetch("/api/plaid/sync", { method: "POST" });
           router.push("/dashboard");
         } else {
-          setError(data.error || "Failed to link account");
+          setError(data.error || `Failed to link account (${res.status})`);
           setConnecting(false);
         }
       } catch (err: any) {

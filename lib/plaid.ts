@@ -2,19 +2,32 @@ import { Configuration, PlaidApi, PlaidEnvironments, Products, CountryCode } fro
 
 const plaidEnv = process.env.PLAID_ENV || 'sandbox';
 
-const configuration = new Configuration({
-  basePath: PlaidEnvironments[plaidEnv],
-  baseOptions: {
-    headers: {
-      'PLAID-CLIENT-ID': process.env.PLAID_CLIENT_ID,
-      'PLAID-SECRET': process.env.PLAID_SECRET,
-    },
-  },
-});
+function getPlaidClient() {
+  const clientId = process.env.PLAID_CLIENT_ID;
+  const secret = process.env.PLAID_SECRET;
 
-const plaidClient = new PlaidApi(configuration);
+  if (!clientId || !secret) {
+    throw new Error(
+      'Plaid is not configured. Set PLAID_CLIENT_ID and PLAID_SECRET environment variables. ' +
+      'Get yours at https://dashboard.plaid.com/team/keys'
+    );
+  }
+
+  const configuration = new Configuration({
+    basePath: PlaidEnvironments[plaidEnv],
+    baseOptions: {
+      headers: {
+        'PLAID-CLIENT-ID': clientId,
+        'PLAID-SECRET': secret,
+      },
+    },
+  });
+
+  return new PlaidApi(configuration);
+}
 
 export async function createLinkToken(userId: string) {
+  const plaidClient = getPlaidClient();
   const response = await plaidClient.linkTokenCreate({
     user: { client_user_id: userId },
     client_name: 'SubAuditor',
@@ -29,6 +42,7 @@ export async function createLinkToken(userId: string) {
 }
 
 export async function exchangePublicToken(publicToken: string, userId: string) {
+  const plaidClient = getPlaidClient();
   const response = await plaidClient.itemPublicTokenExchange({
     public_token: publicToken,
   });
@@ -40,6 +54,7 @@ export async function exchangePublicToken(publicToken: string, userId: string) {
 }
 
 export async function getAccounts(accessToken: string) {
+  const plaidClient = getPlaidClient();
   const response = await plaidClient.accountsGet({
     access_token: accessToken,
   });
@@ -63,6 +78,7 @@ export async function getTransactions(
   startDate: string,
   endDate: string
 ) {
+  const plaidClient = getPlaidClient();
   let allTransactions: any[] = [];
   let hasMore = true;
   let offset = 0;
@@ -95,5 +111,3 @@ export async function getTransactions(
     pending: txn.pending,
   }));
 }
-
-export { plaidClient };
