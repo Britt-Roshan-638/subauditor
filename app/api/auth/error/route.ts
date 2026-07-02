@@ -1,11 +1,7 @@
 // Dynamic error page that shows NextAuth error details
 import { NextResponse } from "next/server";
-import { authOptions } from "@/lib/auth";
-import NextAuth from "next-auth";
 
-const handler = NextAuth(authOptions);
-
-export const GET = async (request: Request) => {
+export function GET(request: Request) {
   const url = new URL(request.url);
   const error = url.searchParams.get("error");
   const errorDescriptions: Record<string, string> = {
@@ -13,17 +9,14 @@ export const GET = async (request: Request) => {
     "CredentialsSignin": "Invalid email or password.",
     "OAuthCallback": "OAuth callback error. Check provider configuration.",
     "OAuthCreateAccount": "Could not create account. This email may already be registered with a different sign-in method.",
-    "EmailCreateAccount": "Could not create account with this email.",
-    "Callback": "Callback error.",
-    "JWTSessionError": "Session error.",
-    "AccessDenied": "Access denied.",
-    "Verification": "Verification error.",
     "default": "Sign-in failed. Please try again.",
   };
   const description = errorDescriptions[error || ""] || errorDescriptions.default;
   
-  return NextResponse.redirect(
-    new URL(`/login?error=${encodeURIComponent(error || "")}&error_description=${encodeURIComponent(description)}`, 
-    url.origin)
-  );
-};
+  const redirectUrl = new URL("/login", url.origin);
+  if (error) {
+    redirectUrl.searchParams.set("error", error);
+    redirectUrl.searchParams.set("error_description", description);
+  }
+  return NextResponse.redirect(redirectUrl);
+}
