@@ -1,9 +1,10 @@
 // components/header.tsx — top app-bar for /dashboard, /settings, /onboarding.
+// Auto-detects user info from NextAuth session.
 
 "use client";
 
 import Link from "next/link";
-import { signOut } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { Settings, LogOut, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,18 +17,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-interface HeaderProps {
-  userName?: string;
-  userEmail?: string;
-}
+export function Header() {
+  const { data: session } = useSession();
+  const userName = session?.user?.name || "Auditor";
+  const userEmail = session?.user?.email || "you@subauditor.app";
+  const userImage = session?.user?.image;
 
-export function Header({
-  userName = "Auditor",
-  userEmail = "you@subauditor.app",
-}: HeaderProps) {
   const initials = userName
     .split(" ")
-    .map((n) => n[0])
+    .map((n: string) => n[0])
     .join("")
     .toUpperCase()
     .slice(0, 2);
@@ -78,34 +76,41 @@ export function Header({
                 className="relative h-9 w-9 rounded-full"
               >
                 <Avatar className="h-9 w-9">
+                  {userImage && (
+                    <img
+                      src={userImage}
+                      alt={userName}
+                      className="h-full w-full rounded-full object-cover"
+                    />
+                  )}
                   <AvatarFallback className="bg-gradient-to-br from-violet to-violet-dim text-primary-foreground text-sm font-semibold">
                     {initials}
-              </AvatarFallback>
-            </Avatar>
-          </Button>
-        </DropdownMenuTrigger>
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">{userName}</p>
                   <p className="text-xs leading-none text-muted-foreground">
                     {userEmail}
-              </p>
-            </div>
-          </DropdownMenuLabel>
+                  </p>
+                </div>
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link href="/dashboard" className="flex items-center">
                   <LayoutDashboard className="mr-2 h-4 w-4" />
                   Dashboard
-              </Link>
-            </DropdownMenuItem>
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/settings" className="flex items-center">
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
-              </Link>
-            </DropdownMenuItem>
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"

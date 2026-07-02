@@ -19,9 +19,12 @@ import {
   TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+|import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 
 export default function DashboardPage() {
+  const { data: session } = useSession();
+  const userName = session?.user?.name || "Auditor";
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -107,7 +110,7 @@ export default function DashboardPage() {
               YOUR SUBSCRIPTIONS • {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
             </div>
             <h1 className="mt-3 font-display text-4xl tracking-tightest sm:text-5xl">
-              Hello, <em className="not-italic text-gradient-violet">Auditor</em>.
+              Hello, <em className="not-italic text-gradient-violet">{userName}</em>.
             </h1>
             <p className="mt-2 text-muted-foreground">
               {activeCount} subscriptions active —{" "}
