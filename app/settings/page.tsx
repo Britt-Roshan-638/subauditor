@@ -236,6 +236,8 @@ export default function SettingsPage() {
                 </div>
 
                 {user?.plan === "pro" ? (
+                  /* Pro — show Manage only if real billable customer, else test badge */
+                  user?.razorpayCustomerId ? (
                   <div className="flex flex-col items-end gap-2">
                     <button
                       onClick={handleManage}
@@ -253,6 +255,11 @@ export default function SettingsPage() {
                       <p className="text-[10px] text-destructive/80 text-right max-w-[200px]">{manageError}</p>
                     )}
                   </div>
+                  ) : (
+                  <div className="shrink-0 rounded-lg border border-champagne/20 bg-champagne/5 px-3 py-2 text-xs font-medium text-champagne">
+                    🧪 Test Pro — no billing attached
+                  </div>
+                  )
                 ) : (
                   <button
                     onClick={handleUpgrade}
