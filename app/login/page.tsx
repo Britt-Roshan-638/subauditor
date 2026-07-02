@@ -2,7 +2,7 @@
 
 // app/login/page.tsx — splitscreen auth shell, credentials + Google.
 
-import { useState, useEffect } from "react";
+import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -10,22 +10,13 @@ import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { AuthShell, GoogleSignInButton, FormField } from "@/components/auth-shell";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(searchParams.get("error") ? "Google sign-in failed. Please try again or use email/password." : "");
   const [loading, setLoading] = useState(false);
-
-  // Show OAuth error from URL params
-  useEffect(() => {
-    const errorParam = searchParams.get("error");
-    const errorDescParam = searchParams.get("error_description");
-    if (errorParam) {
-      setError(errorDescParam || `Authentication error: ${errorParam}`);
-    }
-  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,6 +44,70 @@ export default function LoginPage() {
     }
   };
 
+  return (
+    <div className="mt-8 space-y-4">
+      <GoogleSignInButton onClick={() => signIn("google", { callbackUrl: "/dashboard" })} />
+
+      <div className="flex items-center gap-3">
+        <div className="h-px flex-1 bg-border" />
+        <span className="chip-mono text-[10px] text-muted-foreground">OR</span>
+        <div className="h-px flex-1 bg-border" />
+      </div>
+
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+        >
+          {error}
+        </motion.div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <FormField
+          label="Email"
+          id="email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          autoComplete="email"
+          placeholder="you@example.com"
+        />
+        <FormField
+          label="Password"
+          id="password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          autoComplete="current-password"
+          placeholder="••••••••"
+        />
+
+        <motion.button
+          type="submit"
+          disabled={loading}
+          whileTap={{ scale: 0.98 }}
+          className="group flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-violet to-violet-dim text-base font-medium text-primary-foreground shadow-[0_18px_60px_-12px_rgba(167,139,250,0.45)] transition-shadow hover:shadow-[0_18px_60px_-6px_rgba(167,139,250,0.7)] disabled:opacity-50"
+        >
+          {loading ? "Signing in…" : "Sign in"}
+          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+        </motion.button>
+      </form>
+
+      <p className="text-sm text-center text-muted-foreground">
+        New auditor?{" "}
+        <Link href="/register" className="text-primary hover:text-violet-glow">
+          Create account
+        </Link>
+      </p>
+    </div>
+  );
+}
+
+export default function LoginPage() {
   return (
     <AuthShell
       eyebrow="WELCOME BACK"
@@ -84,65 +139,9 @@ export default function LoginPage() {
         Sign in to continue auditing your subscriptions.
       </p>
 
-      <div className="mt-8 space-y-4">
-        <GoogleSignInButton onClick={() => signIn("google", { callbackUrl: "/dashboard" })} />
-
-        <div className="flex items-center gap-3">
-          <div className="h-px flex-1 bg-border" />
-          <span className="chip-mono text-[10px] text-muted-foreground">OR</span>
-          <div className="h-px flex-1 bg-border" />
-        </div>
-
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive"
-          >
-            {error}
-          </motion.div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <FormField
-            label="Email"
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoComplete="email"
-            placeholder="you@example.com"
-          />
-          <FormField
-            label="Password"
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoComplete="current-password"
-            placeholder="••••••••"
-          />
-
-          <motion.button
-            type="submit"
-            disabled={loading}
-            whileTap={{ scale: 0.98 }}
-            className="group flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-violet to-violet-dim text-base font-medium text-primary-foreground shadow-[0_18px_60px_-12px_rgba(167,139,250,0.45)] transition-shadow hover:shadow-[0_18px_60px_-6px_rgba(167,139,250,0.7)] disabled:opacity-50"
-          >
-            {loading ? "Signing in…" : "Sign in"}
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-          </motion.button>
-        </form>
-
-        <p className="text-sm text-center text-muted-foreground">
-          New auditor?{" "}
-          <Link href="/register" className="text-primary hover:text-violet-glow">
-            Create account
-          </Link>
-        </p>
-      </div>
+      <Suspense fallback={<div className="mt-8 animate-pulse text-center text-sm text-muted-foreground">Loading…</div>}>
+        <LoginForm />
+      </Suspense>
     </AuthShell>
   );
 }
