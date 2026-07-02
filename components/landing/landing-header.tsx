@@ -69,7 +69,7 @@ export function LandingHeader() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                   <Avatar className="h-9 w-9">
-                    <AvatarFallback className="bg-gradient-to-br from-violet to-violet-dim text-primary-foreground text-sm font-semibold">
+                    <AvatarFallback className="bg-gradient-to-br from-violet via-violet-glow to-cyan-glow text-primary-foreground text-sm font-semibold">
                       {initials}
                     </AvatarFallback>
                   </Avatar>

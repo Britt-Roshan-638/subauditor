@@ -21,7 +21,6 @@ export function Header() {
   const { data: session } = useSession();
   const userName = session?.user?.name || "Auditor";
   const userEmail = session?.user?.email || "you@subauditor.app";
-  const userImage = session?.user?.image;
 
   const initials = userName
     .split(" ")
@@ -76,14 +75,7 @@ export function Header() {
                 className="relative h-9 w-9 rounded-full"
               >
                 <Avatar className="h-9 w-9">
-                  {userImage && (
-                    <img
-                      src={userImage}
-                      alt={userName}
-                      className="h-full w-full rounded-full object-cover"
-                    />
-                  )}
-                  <AvatarFallback className="bg-gradient-to-br from-violet to-violet-dim text-primary-foreground text-sm font-semibold">
+                  <AvatarFallback className="bg-gradient-to-br from-violet via-violet-glow to-cyan-glow text-primary-foreground text-sm font-semibold">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
