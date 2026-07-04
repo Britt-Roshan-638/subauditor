@@ -1,17 +1,37 @@
 "use client";
 
-// app/register/page.tsx — splitscreen auth shell, account creation.
-
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Check } from "lucide-react";
 import { AuthShell, GoogleSignInButton, FormField } from "@/components/auth-shell";
 
+function useGoogleEnabled() {
+  const [enabled, setEnabled] = useState(false);
+  useEffect(() => {
+    fetch("/api/auth/providers")
+      .then((r) => r.json())
+      .then((d) => setEnabled(!!d.google))
+      .catch(() => {});
+  }, []);
+  return enabled;
+}
+
 export default function RegisterPage() {
+  return (
+    <Suspense>
+      <RegisterForm />
+    </Suspense>
+  );
+}
+
+function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const referralFromUrl = searchParams.get("ref") || "";
+  const googleEnabled = useGoogleEnabled();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,7 +50,12 @@ export default function RegisterPage() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          referralCode: referralFromUrl || undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -88,13 +113,16 @@ export default function RegisterPage() {
       </p>
 
       <div className="mt-8 space-y-4">
-        <GoogleSignInButton onClick={() => signIn("google", { callbackUrl: "/dashboard" })} />
-
-        <div className="flex items-center gap-3">
-          <div className="h-px flex-1 bg-border" />
-          <span className="chip-mono text-[10px] text-muted-foreground">OR</span>
-          <div className="h-px flex-1 bg-border" />
-        </div>
+        {googleEnabled && (
+          <>
+            <GoogleSignInButton onClick={() => signIn("google", { callbackUrl: "/dashboard" })} />
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1 bg-border" />
+              <span className="chip-mono text-[10px] text-muted-foreground">OR</span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
+          </>
+        )}
 
         {error && (
           <motion.div

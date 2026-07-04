@@ -156,9 +156,12 @@ export default function SettingsPage() {
           <Section
             title="Bank account"
             action={
-              <button className="chip-mono text-[11px] text-primary hover:text-violet-glow">
+              <Link
+                href="/onboarding"
+                className="chip-mono text-[11px] text-primary hover:text-violet-glow"
+              >
                 + CONNECT ANOTHER
-              </button>
+              </Link>
             }
           >
             {bankAccounts.length === 0 ? (

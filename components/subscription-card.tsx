@@ -1,5 +1,6 @@
+"use client";
+
 // components/subscription-card.tsx — single subscription row for the dashboard list.
-// Uses a plain bordered div (no Card wrapper) so it fits cleanly inside the dashboard's list Card.
 
 import { formatCurrency, formatRelativeDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +22,7 @@ export interface Subscription {
   id: string;
   name: string;
   amount: number;
-  frequency: "weekly" | "biweekly" | "monthly" | "quarterly" | "semi_annual" | "annual";
+  frequency: "weekly" | "biweekly" | "monthly" | "quarterly" | "semi_annual" | "annual" | "yearly";
   category: string;
   lastChargeDate: string;
   nextChargeDate: string;
@@ -31,6 +32,8 @@ export interface Subscription {
 
 interface SubscriptionCardProps {
   subscription: Subscription;
+  onDelete?: (id: string) => void;
+  onStatusChange?: (id: string, status: string) => void;
 }
 
 const statusConfig = {
@@ -63,6 +66,7 @@ const frequencyLabels: Record<string, string> = {
   quarterly: "Quarterly",
   semi_annual: "Semi-annual",
   annual: "Annual",
+  yearly: "Annual",
 };
 
 const categoryColors: Record<string, string> = {
@@ -77,15 +81,27 @@ const categoryColors: Record<string, string> = {
   Other: "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400",
 };
 
-export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
-  const status = statusConfig[subscription.status];
+export function SubscriptionCard({ subscription, onDelete, onStatusChange }: SubscriptionCardProps) {
+  const status = statusConfig[subscription.status] ?? statusConfig.active;
   const StatusIcon = status.icon;
   const categoryColor =
     categoryColors[subscription.category] || categoryColors["Other"];
+  const freqKey = subscription.frequency === "yearly" ? "annual" : subscription.frequency;
+
+  const handleCancel = () => {
+    if (onStatusChange) {
+      onStatusChange(subscription.id, "cancelled");
+    }
+  };
+
+  const handleDelete = () => {
+    if (onDelete && confirm(`Remove ${subscription.name} from your audit?`)) {
+      onDelete(subscription.id);
+    }
+  };
 
   return (
     <div className="group flex items-center gap-4 rounded-xl border border-transparent bg-transparent px-3 py-4 transition-all hover:bg-accent/30 hover:border-border/60 sm:px-4">
-      {/* Icon placeholder */}
       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700">
         {subscription.iconUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -101,7 +117,6 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
         )}
       </div>
 
-      {/* Main info */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap">
           <h3 className="truncate font-semibold text-foreground">
@@ -119,24 +134,23 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
             {subscription.category}
           </span>
           <span className="text-xs text-muted-foreground">
-            {frequencyLabels[subscription.frequency]}
+            {frequencyLabels[freqKey] || subscription.frequency}
           </span>
-          <span className="text-xs text-muted-foreground">
-            Last: {formatRelativeDate(subscription.lastChargeDate)}
-          </span>
+          {subscription.lastChargeDate && (
+            <span className="text-xs text-muted-foreground">
+              Last: {formatRelativeDate(subscription.lastChargeDate)}
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Amount & actions */}
       <div className="flex shrink-0 items-center gap-3">
         <div className="text-right">
           <p className="font-bold text-foreground">
             {formatCurrency(subscription.amount)}
           </p>
           <p className="text-xs text-muted-foreground">
-            {subscription.frequency === "monthly"
-              ? "/mo"
-              : `/${subscription.frequency.replace("_", " ")}`}
+            {freqKey === "monthly" ? "/mo" : `/${freqKey.replace("_", " ")}`}
           </p>
         </div>
         <DropdownMenu>
@@ -150,10 +164,14 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem>View Details</DropdownMenuItem>
-            <DropdownMenuItem>Edit</DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive focus:text-destructive">
-              Cancel Subscription
+            <DropdownMenuItem onClick={handleCancel}>
+              Mark as cancelled
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={handleDelete}
+            >
+              Remove from audit
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

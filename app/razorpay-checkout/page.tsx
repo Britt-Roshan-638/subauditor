@@ -14,12 +14,11 @@ function CheckoutContent() {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    // Get order_id and subscription_id from query params
-    const orderId = searchParams.get("order_id");
+    // Get subscription_id from query params
     const subscriptionId = searchParams.get("subscription_id");
 
-    if (!orderId || !subscriptionId) {
-      setError("Invalid payment request. Missing order or subscription ID.");
+    if (!subscriptionId) {
+      setError("Invalid payment request. Missing subscription ID.");
       setIsLoading(false);
       return;
     }
@@ -27,28 +26,22 @@ function CheckoutContent() {
     // Initialize Razorpay
     const initializePayment = async () => {
       try {
+        const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "";
+        if (!keyId) {
+          setError("Razorpay is not configured. Please contact support.");
+          setIsLoading(false);
+          return;
+        }
+
         // Load Razorpay SDK
         await loadRazorpayScript();
 
-        // Get the order details from our backend to verify amount, etc.
-        const orderResponse = await fetch(`/api/razorpay/order/${orderId}`);
-        if (!orderResponse.ok) {
-          throw new Error("Failed to fetch order details");
-        }
-        const orderData = await orderResponse.json();
-
-        // Initialize Razorpay instance
-        const razorpayInstance = new (window as any).Razorpay({
-          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "",
-        });
-
         const options = {
-          amount: orderData.amount, // amount in paise
-          currency: orderData.currency,
+          key: keyId,
+          subscription_id: subscriptionId,
           name: "SubAuditor",
-          description: "Subscription to Pro Plan",
-          image: "/logo.png", // Your logo
-          order_id: orderId,
+          description: "Pro Plan - Monthly",
+          image: "/logo.png",
           handler: async function (response: any) {
             // Handle successful payment
             setIsLoading(true);
@@ -58,7 +51,6 @@ function CheckoutContent() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  orderId: response.razorpay_order_id,
                   paymentId: response.razorpay_payment_id,
                   subscriptionId: subscriptionId,
                   signature: response.razorpay_signature,
@@ -101,7 +93,8 @@ function CheckoutContent() {
           },
         };
 
-        razorpayInstance.open(options);
+        const rzp = new (window as any).Razorpay(options);
+        rzp.open();
       } catch (err) {
         console.error("Error initializing Razorpay:", err);
         setError("Failed to initialize payment gateway. Please try again.");

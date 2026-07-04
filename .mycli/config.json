@@ -1,0 +1,8 @@
+{
+  "version": "1.0.0",
+  "review": {
+    "postToGitHub": true,
+    "outputFile": "review.md",
+    "minSeverityToBlock": "important"
+  }
+}

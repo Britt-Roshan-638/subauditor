@@ -1,5 +1,4 @@
-// app/dashboard/page.tsx — main subscriber dashboard with framer-motion entrance animations,
-// proper spacing between subscription cards & price history, and scrollable "Review waste".
+// app/dashboard/page.tsx — main subscriber dashboard
 
 "use client";
 
@@ -7,6 +6,7 @@ import { Header } from "@/components/header";
 import { StatsCard } from "@/components/stats-card";
 import { SubscriptionCard } from "@/components/subscription-card";
 import { HistoryCard } from "@/components/history-card";
+import { AddSubscriptionDialog } from "@/components/add-subscription-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -15,14 +15,14 @@ import {
   Gauge,
   PiggyBank,
   Landmark,
-  Plus,
   Sparkles,
   ArrowDown,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { motion } from "framer-motion";
+import { toMonthlyAmount } from "@/lib/subscription-utils";
 
 const stagger = {
   container: {
@@ -41,37 +41,59 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<any>(null);
+  const [bankConnected, setBankConnected] = useState(false);
   const subsRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    async function fetchDashboardData() {
-      try {
-        setIsLoading(true);
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
 
-        const subsResponse = await fetch("/api/subscriptions");
-        if (!subsResponse.ok) {
-          throw new Error(`Failed to fetch subscriptions: ${subsResponse.status}`);
-        }
-        const subsData = await subsResponse.json();
+      const [subsResponse, statsResponse, accountsResponse] = await Promise.all([
+        fetch("/api/subscriptions"),
+        fetch("/api/subscriptions/stats"),
+        fetch("/api/plaid/accounts"),
+      ]);
 
-        const statsResponse = await fetch("/api/subscriptions/stats");
-        if (!statsResponse.ok) {
-          throw new Error(`Failed to fetch stats: ${statsResponse.status}`);
-        }
-        const statsData = await statsResponse.json();
-
-        setSubscriptions(subsData.subscriptions || []);
-        setStats(statsData);
-      } catch (err) {
-        console.error("Failed to fetch dashboard data:", err);
-        setError(err instanceof Error ? err.message : "Unknown error");
-      } finally {
-        setIsLoading(false);
+      if (!subsResponse.ok) {
+        throw new Error(`Failed to fetch subscriptions: ${subsResponse.status}`);
       }
-    }
+      if (!statsResponse.ok) {
+        throw new Error(`Failed to fetch stats: ${statsResponse.status}`);
+      }
 
-    fetchDashboardData();
+      const subsData = await subsResponse.json();
+      const statsData = await statsResponse.json();
+      const accountsData = accountsResponse.ok ? await accountsResponse.json() : { accounts: [] };
+
+      setSubscriptions(subsData.subscriptions || []);
+      setStats(statsData);
+      setBankConnected((accountsData.accounts?.length ?? 0) > 0);
+    } catch (err) {
+      console.error("Failed to fetch dashboard data:", err);
+      setError(err instanceof Error ? err.message : "Unknown error");
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  const handleDelete = async (id: string) => {
+    const res = await fetch(`/api/subscriptions/${id}`, { method: "DELETE" });
+    if (res.ok) fetchDashboardData();
+  };
+
+  const handleStatusChange = async (id: string, status: string) => {
+    const res = await fetch(`/api/subscriptions/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    if (res.ok) fetchDashboardData();
+  };
 
   const scrollToSubscriptions = () => {
     subsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -98,9 +120,7 @@ export default function DashboardPage() {
         <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center py-12">
             <p className="text-destructive">Failed to load dashboard: {error}</p>
-            <Button onClick={() => window.location.reload()}>
-              Retry
-            </Button>
+            <Button onClick={() => fetchDashboardData()}>Retry</Button>
           </div>
         </main>
       </div>
@@ -111,13 +131,17 @@ export default function DashboardPage() {
   const activeCount = stats?.totalSubscriptions || subscriptions.filter((s: any) => s.status === "active").length;
   const wasteScore = stats?.wasteScore || 0;
   const potentialSavings = stats?.potentialSavings || 0;
+  const trends = stats?.trends || {};
+  const spendChangePct = trends.spendChangePct ?? 0;
+  const newSubsThisMonth = trends.newSubsThisMonth ?? 0;
+  const unusedCount = trends.unusedCount ?? 0;
+  const wasteImproved = (trends.priorWasteScore ?? wasteScore) > wasteScore;
 
   return (
     <div className="min-h-screen">
       <Header />
 
       <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
-        {/* Page header */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -138,7 +162,7 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            {subscriptions.length > 0 ? (
+            {bankConnected ? (
               <Button variant="outline" className="gap-2 border-emerald-400/30 bg-emerald-400/5 text-emerald-400 hover:bg-emerald-400/10 hover:text-emerald-300">
                 <span className="relative flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" />
@@ -147,15 +171,16 @@ export default function DashboardPage() {
                 Bank connected
               </Button>
             ) : (
-              <Button className="gap-2">
-                <Landmark className="h-4 w-4" />
-                Connect bank
-              </Button>
+              <Link href="/onboarding">
+                <Button className="gap-2">
+                  <Landmark className="h-4 w-4" />
+                  Connect bank
+                </Button>
+              </Link>
             )}
           </div>
         </motion.div>
 
-        {/* Stats — stagger-fade from below */} 
         <motion.div
           variants={stagger.container}
           initial="hidden"
@@ -167,8 +192,11 @@ export default function DashboardPage() {
               icon={DollarSign}
               label="Monthly spend"
               value={"$" + totalMonthly.toFixed(2)}
-              trend={{ value: 12, label: "vs prior mo." }}
-              trendDirection="up"
+              trend={{
+                value: Math.abs(spendChangePct),
+                label: spendChangePct >= 0 ? "vs prior mo." : "vs prior mo.",
+              }}
+              trendDirection={spendChangePct >= 0 ? "up" : "down"}
               iconColor="text-champagne"
               iconBgColor="bg-champagne/10"
             />
@@ -178,8 +206,8 @@ export default function DashboardPage() {
               icon={CreditCard}
               label="Active subs"
               value={activeCount.toString()}
-              trend={{ value: 2, label: "new this mo." }}
-              trendDirection="up"
+              trend={{ value: newSubsThisMonth, label: "new this mo." }}
+              trendDirection={newSubsThisMonth > 0 ? "up" : "down"}
               iconColor="text-violet-glow"
               iconBgColor="bg-violet/10"
             />
@@ -189,8 +217,11 @@ export default function DashboardPage() {
               icon={Gauge}
               label="Waste score"
               value={wasteScore + "%"}
-              trend={{ value: 8, label: "improved" }}
-              trendDirection="down"
+              trend={{
+                value: Math.abs(wasteScore - (trends.priorWasteScore ?? wasteScore)),
+                label: wasteImproved ? "improved" : "vs last check",
+              }}
+              trendDirection={wasteImproved ? "down" : "up"}
               iconColor="text-success"
               iconBgColor="bg-success/10"
             />
@@ -200,7 +231,7 @@ export default function DashboardPage() {
               icon={PiggyBank}
               label="Stop-bleed potential"
               value={"$" + potentialSavings.toFixed(2)}
-              trend={{ value: 23, label: "vs prior mo." }}
+              trend={{ value: Math.round(potentialSavings), label: "est. savings/mo" }}
               trendDirection="up"
               iconColor="text-cyan-glow"
               iconBgColor="bg-accent/10"
@@ -208,7 +239,6 @@ export default function DashboardPage() {
           </motion.div>
         </motion.div>
 
-        {/* Subscriptions list */}
         <motion.div
           ref={subsRef}
           initial={{ opacity: 0, y: 18 }}
@@ -226,22 +256,14 @@ export default function DashboardPage() {
                     Sorted by monthly cost, descending.
                   </p>
                 </div>
-                <Button size="sm" variant="outline" className="gap-2 border-border">
-                  <Plus className="h-4 w-4" />
-                  Add manual
-                </Button>
+                <AddSubscriptionDialog onAdded={fetchDashboardData} />
               </CardHeader>
               <CardContent className="p-0">
                 {subscriptions
                   .slice()
                   .sort((a: any, b: any) => {
-                    const freqMultiplier = (freq: string) => {
-                      if (freq === "weekly") return 4.33;
-                      if (freq === "yearly") return 1 / 12;
-                      return 1;
-                    };
-                    const monthlyA = a.amount * freqMultiplier(a.frequency);
-                    const monthlyB = b.amount * freqMultiplier(b.frequency);
+                    const monthlyA = toMonthlyAmount(a.amount, a.frequency);
+                    const monthlyB = toMonthlyAmount(b.amount, b.frequency);
                     return monthlyB - monthlyA;
                   })
                   .map((subscription: any, idx: number) => (
@@ -251,11 +273,12 @@ export default function DashboardPage() {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.3, delay: 0.3 + idx * 0.05 }}
                     >
-                      {/* Subscription row with hover background */}
                       <div className="border-b border-border/30 last:border-b-0">
-                        <SubscriptionCard subscription={subscription} />
-
-                        {/* Price history — spaced away from the card */}
+                        <SubscriptionCard
+                          subscription={subscription}
+                          onDelete={handleDelete}
+                          onStatusChange={handleStatusChange}
+                        />
                         {subscription.PriceChange?.length > 0 && (
                           <div className="px-4 pb-4 sm:px-5">
                             <div className="ml-1 border-l-2 border-champagne/20 pl-4">
@@ -283,8 +306,7 @@ export default function DashboardPage() {
           )}
         </motion.div>
 
-        {/* Insight card — scrolls to subs instead of linking to settings */}
-        {subscriptions.length > 0 && (
+        {subscriptions.length > 0 && potentialSavings > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -297,8 +319,10 @@ export default function DashboardPage() {
                     <Sparkles className="mr-1.5 inline h-3 w-3" /> INSIGHT
                   </div>
                   <h3 className="mt-2 font-display text-xl tracking-tightest">
-                    You could save <span className="text-gradient-violet">${potentialSavings.toFixed(2)}/mo</span> by
-                    reviewing two unused subscriptions.
+                    You could save <span className="text-gradient-violet">${potentialSavings.toFixed(2)}/mo</span>
+                    {unusedCount > 0
+                      ? ` by reviewing ${unusedCount} possibly unused subscription${unusedCount > 1 ? "s" : ""}.`
+                      : " by reviewing your recurring charges."}
                   </h3>
                 </div>
                 <Button

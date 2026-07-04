@@ -148,7 +148,7 @@ export function Hero() {
             </div>
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-champagne" />
-              Average $47/mo saved
+              Average ₹4,000/mo saved
             </div>
             <div className="flex items-center gap-2">
               <span className="relative flex h-2 w-2">

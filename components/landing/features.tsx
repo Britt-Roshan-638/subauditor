@@ -27,7 +27,7 @@ const features = [
     eyebrow: "DETECT",
     title: "Auto-detect recurring charges",
     body:
-      "We surface every recurring charge — from obvious $9.99s to forgotten niche SaaS — within 90 seconds of first sync.",
+      "We surface every recurring charge — from obvious ₹99s to forgotten niche SaaS — within 90 seconds of first sync.",
     accent: "#a78bfa",
   },
   {
@@ -35,7 +35,7 @@ const features = [
     eyebrow: "ALERTS",
     title: "Price-increase radar notifications",
     body:
-      "We diff your subscriptions week over week so you catch the subtle creep from $11.99 to $14.99 before the second hit.",
+      "We diff your subscriptions week over week so you catch the subtle creep from ₹149 to ₹199 before the second hit.",
     accent: "#f5d491",
   },
   {

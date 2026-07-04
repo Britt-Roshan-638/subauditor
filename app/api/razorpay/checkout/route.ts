@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { razorpay } from "@/lib/razorpay";
 import { requireAuth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { v4 as uuidv4 } from 'uuid';
+import { Prisma } from "@prisma/client";
 
 export async function POST(request: NextRequest) {
-  // Require authenticated user
-  const { user, error } = await requireAuth(request);
+  // Require authenticated user (with DB hydration for razorpayCustomerId)
+  const { user, error } = await requireAuth(request, { hydrate: true });
   if (error) return error;
+
+  // hydrate: true guarantees full Prisma User with razorpayCustomerId, plan, etc.
+  const userWithDb = user as Prisma.UserGetPayload<{}>;
 
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
   const planId = process.env.RAZORPAY_PLAN_ID_MONTHLY || process.env.RAZORPAY_PLAN_ID;
@@ -20,13 +23,13 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    let razorpayCustomerId = user!.razorpayCustomerId;
+    let razorpayCustomerId = userWithDb.razorpayCustomerId;
 
     // Create Razorpay customer if one doesn't exist
     if (!razorpayCustomerId) {
       const customer = await razorpay.customers.create({
-        email: user!.email,
-        name: user!.name || undefined,
+        email: userWithDb.email,
+        name: userWithDb.name || undefined,
         contact: "", // Optional - phone number
       });
 
@@ -34,44 +37,33 @@ export async function POST(request: NextRequest) {
 
       // Store razorpayCustomerId in the User table
       await prisma.user.update({
-        where: { id: user!.id },
+        where: { id: userWithDb.id },
         data: { razorpayCustomerId: customer.id },
       });
     }
 
-    // Create a subscription with immediate first payment (count: 1)
+    // Create a subscription with recurring billing (total_count: 0 = infinite recurring)
+    // Using type assertion to include customer_id which is accepted by Razorpay API but not in TS types
     const subscription = await razorpay.subscriptions.create({
       plan_id: planId,
-      customer_notify: 1,
-      total_count: 1, // Charge for first period immediately
+      customer_id: razorpayCustomerId, // CRITICAL: pass customer_id so webhook can match user
+      customer_notify: 1 as const,
+      total_count: 0, // 0 = infinite recurring cycles
       notes: {
-        userId: user!.id,
-        email: user!.email,
+        userId: userWithDb.id,
+        email: userWithDb.email,
         source: "subauditor",
       },
+    } as { plan_id: string; customer_id: string; customer_notify: 1; total_count: number; notes: Record<string, string> });
+
+    // Store the subscription ID on the user so portal/actions can look it up
+    await prisma.user.update({
+      where: { id: userWithDb.id },
+      data: { razorpaySubscriptionId: subscription.id },
     });
 
-    // Create an order for the subscription amount (for payment collection)
-    // First, get the plan details to know the amount
-    const plan = await razorpay.plans.fetch(planId);
-    const amount = plan.item.amount; // Amount in paise
-
-    // Generate a unique receipt ID
-    const receipt = `receipt_${uuidv4()}`;
-
-    // Create an order for this amount
-    const order = await razorpay.orders.create({
-      amount: amount,
-      currency: "INR",
-      receipt: receipt,
-      notes: {
-        subscriptionId: subscription.id,
-        userId: user!.id,
-      }
-    });
-
-    // Redirect to our Razorpay checkout page with the order ID
-    const paymentUrl = `${baseUrl}/razorpay-checkout?order_id=${order.id}&subscription_id=${subscription.id}`;
+    // Redirect to our Razorpay checkout page with the subscription ID
+    const paymentUrl = `${baseUrl}/razorpay-checkout?subscription_id=${subscription.id}`;
 
     return NextResponse.json({ url: paymentUrl });
   } catch (err: unknown) {

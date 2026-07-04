@@ -14,7 +14,7 @@ const plans = [
     name: "Auditor",
     tag: "FREE",
     blurb: "For one person auditing a handful of subscriptions",
-    price: "$0",
+    price: "₹0",
     period: "/ forever",
     features: [
       "Up to 5 subscriptions tracked",
@@ -33,8 +33,8 @@ const plans = [
     name: "Pro",
     tag: "PRO",
     blurb: "For anyone with more than five subscriptions — and zero patience for silent price hikes",
-    price: "$7",
-    period: "/ per month",
+    price: "₹599",
+    period: "/month",
     features: [
       "Unlimited subscriptions",
       "Bank sync via Plaid",
@@ -55,8 +55,8 @@ const plans = [
     name: "Family",
     tag: "FAMILY",
     blurb: "Up to four linked people. Shared audit, individual leaks",
-    price: "$19",
-    period: "/ per month",
+    price: "₹1,599",
+    period: "/month",
     features: [
       "Everything in Pro",
       "Up to 4 linked household members",

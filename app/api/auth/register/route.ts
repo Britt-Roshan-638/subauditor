@@ -1,11 +1,16 @@
-// app/api/auth/register/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
 
+function generateReferralCode(name: string, email: string): string {
+  const base = (name || email.split("@")[0]).replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 8);
+  const suffix = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `${base || "USER"}-${suffix}`;
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const { email, name, password } = await req.json();
+    const { email, name, password, referralCode } = await req.json();
 
     // Input validation
     if (!email || typeof email !== 'string' || email.trim() === '') {
@@ -56,6 +61,16 @@ export async function POST(req: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password.trim(), 12);
 
+    let referredBy: string | undefined;
+    if (referralCode && typeof referralCode === "string" && referralCode.trim().length >= 3) {
+      const referrer = await prisma.user.findUnique({
+        where: { referralCode: referralCode.trim() },
+      });
+      if (referrer) {
+        referredBy = referrer.id;
+      }
+    }
+
     // Create user
     const user = await prisma.user.create({
       data: {
@@ -63,6 +78,8 @@ export async function POST(req: NextRequest) {
         email: normalizedEmail,
         name: name.trim(),
         password: hashedPassword,
+        referralCode: generateReferralCode(name.trim(), normalizedEmail),
+        referredBy,
         updatedAt: new Date(),
       },
       select: {

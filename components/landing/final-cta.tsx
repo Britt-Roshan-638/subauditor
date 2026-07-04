@@ -28,7 +28,7 @@ export function FinalCta() {
         </h2>
         <p className="mt-5 text-lg text-muted-foreground">
           Ninety seconds to set up. The average user saves{" "}
-          <span className="text-champagne">$564 a year</span>.
+          <span className="text-champagne">₹47,000 a year</span>.
         </p>
         <div className="mt-10 flex justify-center">
           {!loading && isLoggedIn ? (

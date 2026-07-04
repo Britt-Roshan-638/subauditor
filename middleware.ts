@@ -19,11 +19,12 @@ export default withAuth(
 
     const csp =
       "default-src 'self'; " +
-      "script-src 'self' 'unsafe-inline' https://vercel.live; " +
-      "style-src 'self' 'unsafe-inline'; " +
+      "script-src 'self' 'unsafe-inline' https://vercel.live https://checkout.razorpay.com https://cdn.plaid.com; " +
+      "style-src 'self' 'unsafe-inline' https://checkout.razorpay.com; " +
       "img-src 'self' data: https:; " +
-      "font-src 'self'; " +
-      "connect-src 'self' https://*.supabase.co https://api.vercel.dev; " +
+      "font-src 'self' https:; " +
+      "connect-src 'self' https://*.supabase.co https://api.vercel.dev https://api.razorpay.com https://*.plaid.com https://production.plaid.com https://sandbox.plaid.com; " +
+      "frame-src https://checkout.razorpay.com https://cdn.plaid.com; " +
       "frame-ancestors 'none';" +
       "base-uri 'self';" +
       "form-action 'self';";
@@ -52,6 +53,6 @@ export const config = {
      * - favicon.ico
      * - api/auth (NextAuth routes — must be public for sign-in flow)
      */
-    '/((?!_next/static|_next/image|favicon.ico|api/auth|login|register|pricing|onboarding|$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api/auth|api/webhooks|login|register|pricing|onboarding|$).*)',
   ],
 };

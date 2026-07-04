@@ -113,10 +113,32 @@ async function readJwtFromRequest(request: NextRequest) {
 }
 
 /**
- * Get the current authenticated user from the JWT token.
+ * Get the current authenticated user from the JWT token (stateless - no DB call).
+ * The JWT already contains id, email, name, picture from the auth callback.
  * Pass the NextRequest from your route handler.
  */
 export async function getCurrentUser(request?: NextRequest) {
+  try {
+    if (!request) return null;
+    const token = await readJwtFromRequest(request);
+    if (!token?.id) return null;
+    // Return JWT claims directly - no DB call for stateless auth
+    return {
+      id: token.id as string,
+      email: token.email as string,
+      name: token.name as string,
+      image: token.picture as string,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get the current authenticated user WITH database hydration (for routes that need full User model).
+ * Use this when you need fields like plan, razorpayCustomerId, referralCode, etc.
+ */
+export async function getCurrentUserWithDb(request?: NextRequest) {
   try {
     if (!request) return null;
     const token = await readJwtFromRequest(request);
@@ -129,9 +151,12 @@ export async function getCurrentUser(request?: NextRequest) {
 
 /**
  * Require authentication — returns the user or a NextResponse error.
+ * Uses stateless JWT by default; pass { hydrate: true } if you need DB fields.
  */
-export async function requireAuth(request: NextRequest) {
-  const user = await getCurrentUser(request);
+export async function requireAuth(request: NextRequest, options?: { hydrate?: boolean }) {
+  const user = options?.hydrate
+    ? await getCurrentUserWithDb(request)
+    : await getCurrentUser(request);
   if (!user) {
     return {
       user: null,
@@ -146,9 +171,12 @@ export async function requireAuth(request: NextRequest) {
 
 /**
  * Get server session — compatible with API route usage.
+ * Uses stateless JWT by default
  */
-export async function getServerSession(request: NextRequest) {
-  const user = await getCurrentUser(request);
+export async function getServerSession(request: NextRequest, options?: { hydrate?: boolean }) {
+  const user = options?.hydrate
+    ? await getCurrentUserWithDb(request)
+    : await getCurrentUser(request);
   if (!user) return null;
   return {
     user: {

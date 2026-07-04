@@ -1,6 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
-import { razorpay } from "@/lib/razorpay";
 import prisma from "@/lib/prisma";
+import crypto from 'crypto';
+
+// --- In-memory dedup cache — evicts entries older than 1 hour ---
+const processedEvents = new Map<string, number>();
+const EVENT_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+function cleanupCache() {
+  const now = Date.now();
+  Array.from(processedEvents.entries()).forEach(([key, timestamp]) => {
+    if (now - timestamp > EVENT_TTL_MS) {
+      processedEvents.delete(key);
+    }
+  });
+}
+
+function getEventId(event: any): string {
+  // Razorpay events have an id field at the top level
+  if (event.id) return event.id;
+
+  // Fallback: use event type + entity id + created_at
+  const entity = event.payload?.subscription?.entity || event.payload?.payment?.entity;
+  if (entity?.id) {
+    return `${event.event}:${entity.id}:${entity.created_at || ''}`;
+  }
+  return `${event.event}:${JSON.stringify(event.payload).slice(0, 100)}`;
+}
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -22,13 +47,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Verify the webhook signature
-  const crypto = require('crypto');
+  // Verify the webhook signature using timing-safe comparison
   const shasum = crypto.createHmac('sha256', webhookSecret);
   shasum.update(body);
   const digest = shasum.digest('hex');
 
-  if (digest !== signature) {
+  if (!timingSafeEqual(digest, signature)) {
     console.error("Invalid Razorpay webhook signature");
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
@@ -41,6 +65,15 @@ export async function POST(request: NextRequest) {
     console.error("Invalid JSON in webhook body");
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
+
+  // --- Idempotency guard: skip already-processed events ---
+  cleanupCache();
+  const eventId = getEventId(event);
+  if (processedEvents.has(eventId)) {
+    console.log(`Duplicate webhook event ignored: ${eventId}`);
+    return NextResponse.json({ received: true, duplicate: true });
+  }
+  processedEvents.set(eventId, Date.now());
 
   try {
     switch (event.event) {
@@ -69,6 +102,16 @@ export async function POST(request: NextRequest) {
         break;
       }
 
+      case "subscription.payment_failed": {
+        await handleSubscriptionPaymentFailed(event.payload.subscription.entity);
+        break;
+      }
+
+      case "subscription.halted": {
+        await handleSubscriptionHalted(event.payload.subscription.entity);
+        break;
+      }
+
       case "payment.captured": {
         await handlePaymentCaptured(event.payload.payment.entity);
         break;
@@ -92,41 +135,21 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Handle subscription.created — subscription was created but not yet activated
+ * Timing-safe string comparison to prevent timing attacks
+ */
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
+/**
+ * Handle subscription.created — log only; billing is tracked on User.plan, not Subscription rows
  */
 async function handleSubscriptionCreated(subscription: any) {
-  const { id: subscriptionId, customer_id, plan_id, status, total_count, current_start, current_end } = subscription;
-
+  const { id: subscriptionId, customer_id } = subscription;
   console.log(`Subscription created: ${subscriptionId} for customer ${customer_id}`);
-
-  // Find the user by razorpayCustomerId
-  const user = await prisma.user.findUnique({
-    where: { razorpayCustomerId: customer_id },
-  });
-
-  if (!user) {
-    console.error(`No user found with razorpayCustomerId: ${customer_id}`);
-    return;
-  }
-
-  // Update subscription with razorpay subscription ID
-  await prisma.subscription.upsert({
-    where: { razorpaySubscriptionId: subscriptionId },
-    update: {
-      status: status.toLowerCase(),
-      // Note: We might want to store additional subscription details
-    },
-    create: {
-      id: crypto.randomUUID(),
-      userId: user.id,
-      plan_id: plan_id,
-      razorpaySubscriptionId: subscriptionId,
-      status: status.toLowerCase(),
-      // Set dates if provided
-      ...(current_start && { startDate: new Date(parseInt(current_start) * 1000) }),
-      ...(current_end && { endDate: new Date(parseInt(current_end) * 1000) }),
-    },
-  });
 }
 
 /**
@@ -147,19 +170,12 @@ async function handleSubscriptionActivated(subscription: any) {
     return;
   }
 
-  // Update user to Pro plan
+  // Update user to Pro plan and store subscription ID for portal management
   await prisma.user.update({
     where: { id: user.id },
-    data: { plan: "pro" },
-  });
-
-  // Update subscription status
-  await prisma.subscription.updateMany({
-    where: { razorpaySubscriptionId: subscriptionId },
     data: {
-      status: status.toLowerCase(),
-      ...(current_start && { startDate: new Date(parseInt(current_start) * 1000) }),
-      ...(current_end && { endDate: new Date(parseInt(current_end) * 1000) }),
+      plan: "pro",
+      razorpaySubscriptionId: subscriptionId,
     },
   });
 
@@ -190,11 +206,6 @@ async function handleSubscriptionCharged(subscription: any) {
     data: { plan: "pro" },
   });
 
-  // Update subscription status
-  await prisma.subscription.updateMany({
-    where: { razorpaySubscriptionId: subscriptionId },
-    data: { status: status.toLowerCase() },
-  });
 }
 
 /**
@@ -221,12 +232,6 @@ async function handleSubscriptionCompleted(subscription: any) {
     data: { plan: "free" },
   });
 
-  // Update subscription status
-  await prisma.subscription.updateMany({
-    where: { razorpaySubscriptionId: subscriptionId },
-    data: { status: status.toLowerCase() },
-  });
-
   console.log(`User ${user.id} downgraded to free plan`);
 }
 
@@ -234,11 +239,10 @@ async function handleSubscriptionCompleted(subscription: any) {
  * Handle subscription.cancelled — subscription was cancelled
  */
 async function handleSubscriptionCancelled(subscription: any) {
-  const { id: subscriptionId, customer_id, status } = subscription;
+  const { id: subscriptionId, customer_id } = subscription;
 
   console.log(`Subscription cancelled: ${subscriptionId} for customer ${customer_id}`);
 
-  // Find the user by razorpayCustomerId
   const user = await prisma.user.findUnique({
     where: { razorpayCustomerId: customer_id },
   });
@@ -248,19 +252,57 @@ async function handleSubscriptionCancelled(subscription: any) {
     return;
   }
 
-  // Downgrade to free plan
   await prisma.user.update({
     where: { id: user.id },
     data: { plan: "free" },
   });
 
-  // Update subscription status
-  await prisma.subscription.updateMany({
-    where: { razorpaySubscriptionId: subscriptionId },
-    data: { status: status.toLowerCase() },
+  console.log(`User ${user.id} downgraded to free plan`);
+}
+
+/**
+ * Handle subscription.payment_failed — recurring payment failed
+ */
+async function handleSubscriptionPaymentFailed(subscription: any) {
+  const { id: subscriptionId, customer_id } = subscription;
+
+  console.log(`Subscription payment failed: ${subscriptionId} for customer ${customer_id}`);
+
+  const user = await prisma.user.findUnique({
+    where: { razorpayCustomerId: customer_id },
   });
 
-  console.log(`User ${user.id} downgraded to free plan`);
+  if (!user) {
+    console.error(`No user found with razorpayCustomerId: ${customer_id}`);
+    return;
+  }
+
+  console.log(`User ${user.id} subscription payment failed - manual review recommended`);
+}
+
+/**
+ * Handle subscription.halted — subscription was halted (all retries exhausted)
+ */
+async function handleSubscriptionHalted(subscription: any) {
+  const { id: subscriptionId, customer_id } = subscription;
+
+  console.log(`Subscription halted: ${subscriptionId} for customer ${customer_id}`);
+
+  const user = await prisma.user.findUnique({
+    where: { razorpayCustomerId: customer_id },
+  });
+
+  if (!user) {
+    console.error(`No user found with razorpayCustomerId: ${customer_id}`);
+    return;
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { plan: "free" },
+  });
+
+  console.log(`User ${user.id} downgraded to free plan (subscription halted)`);
 }
 
 /**
@@ -271,17 +313,35 @@ async function handlePaymentCaptured(payment: any) {
 
   console.log(`Payment captured: ${paymentId} for amount ${amount/100} ${currency}`);
 
-  // Store payment record if needed
-  // await prisma.razorpayPayment.create({
-  //   data: {
-  //     razorpayPaymentId: paymentId,
-  //     amount: amount / 100, // Convert from paise to rupees
-  //     currency,
-  //     method,
-  //     email,
-  //     contact,
-  //   },
-  // });
+  // Find the user by email or contact to link payment record
+  const user = email
+    ? await prisma.user.findFirst({ where: { email } })
+    : null;
+
+  if (user) {
+    await prisma.razorpayPayment.upsert({
+      where: { razorpayPaymentId: paymentId },
+      update: {
+        amount: amount / 100,
+        currency,
+        status: "captured",
+        method,
+        email,
+        contact,
+      },
+      create: {
+        id: crypto.randomUUID(),
+        userId: user.id,
+        razorpayPaymentId: paymentId,
+        amount: amount / 100,
+        currency,
+        status: "captured",
+        method,
+        email,
+        contact,
+      },
+    });
+  }
 }
 
 /**

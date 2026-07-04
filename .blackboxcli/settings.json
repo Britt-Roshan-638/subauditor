@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "httpUrl": "https://mcp.supabase.com/mcp",
+      "headers": { "X-Source-Name": "claude-code-plugin" },
+      "trust": true,
+      "description": "Supabase database management"
+    },
+    "vercel": {
+      "httpUrl": "https://mcp.vercel.com",
+      "trust": true,
+      "description": "Vercel deployment platform"
+    }
+  },
+  "experimental": {
+    "acp": true
+  },
+  "general": {
+    "preferredEditor": "vscode"
+  }
+}

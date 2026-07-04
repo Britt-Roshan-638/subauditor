@@ -2,20 +2,23 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
-  const { user, error } = await requireAuth(request);
+  const { user, error } = await requireAuth(request, { hydrate: true });
   if (error) return error;
+
+  // hydrate: true guarantees full Prisma User with plan, razorpayCustomerId, referralCode
+  const userWithPlan = user as Prisma.UserGetPayload<{}>;
 
   return NextResponse.json({
     user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      plan: user.plan,
-      razorpayCustomerId: user.razorpayCustomerId,
-      referralCode: user.referralCode,
+      id: userWithPlan.id,
+      email: userWithPlan.email,
+      name: userWithPlan.name,
+      plan: userWithPlan.plan,
+      razorpayCustomerId: userWithPlan.razorpayCustomerId,
+      referralCode: userWithPlan.referralCode,
     },
   });
 }

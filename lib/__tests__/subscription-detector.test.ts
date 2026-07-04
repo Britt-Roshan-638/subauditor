@@ -95,7 +95,7 @@ describe('Yearly subscription detection', () => {
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe('Amazon Prime');
     expect(result[0].amount).toBe(139);
-    expect(result[0].frequency).toBe('yearly');
+    expect(result[0].frequency).toBe('annual');
   });
 
   it('predicts next charge date correctly for yearly subscription', async () => {

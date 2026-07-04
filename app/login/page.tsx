@@ -2,7 +2,7 @@
 
 // app/login/page.tsx — splitscreen auth shell, credentials + Google.
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -17,6 +17,14 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState(searchParams.get("error") ? "Google sign-in failed. Please try again or use email/password." : "");
   const [loading, setLoading] = useState(false);
+  const [googleEnabled, setGoogleEnabled] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/auth/providers")
+      .then((res) => res.json())
+      .then((data) => setGoogleEnabled(!!data.google))
+      .catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,13 +54,16 @@ function LoginForm() {
 
   return (
     <div className="mt-8 space-y-4">
-      <GoogleSignInButton onClick={() => signIn("google", { callbackUrl: "/dashboard" })} />
-
-      <div className="flex items-center gap-3">
-        <div className="h-px flex-1 bg-border" />
-        <span className="chip-mono text-[10px] text-muted-foreground">OR</span>
-        <div className="h-px flex-1 bg-border" />
-      </div>
+      {googleEnabled && (
+        <>
+          <GoogleSignInButton onClick={() => signIn("google", { callbackUrl: "/dashboard" })} />
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-border" />
+            <span className="chip-mono text-[10px] text-muted-foreground">OR</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+        </>
+      )}
 
       {error && (
         <motion.div

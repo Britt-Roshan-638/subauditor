@@ -179,6 +179,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Admin-only endpoint: require ADMIN_EMAIL in all environments
+    const adminEmail = process.env.ADMIN_EMAIL;
+    if (!adminEmail || session.user.email !== adminEmail) {
+      return NextResponse.json({ error: "Forbidden — admin only" }, { status: 403 });
+    }
+
     const userId = session.user.id;
     const url = new URL(request.url);
     const shouldReset = url.searchParams.get("reset") === "true";

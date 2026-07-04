@@ -192,7 +192,7 @@ export default function PricingPage() {
                 <h3 className="mt-3 font-display text-2xl tracking-tightest">Free</h3>
                 <p className="mt-1 text-sm text-muted-foreground">For one person auditing a handful of subscriptions</p>
                 <div className="mt-5 flex items-baseline gap-1.5">
-                  <span className="font-display text-5xl tracking-tightest">$0</span>
+                  <span className="font-display text-5xl tracking-tightest">₹0</span>
                   <span className="text-sm text-muted-foreground">/ forever</span>
                 </div>
               </div>
@@ -232,8 +232,8 @@ export default function PricingPage() {
                   <h3 className="mt-3 font-display text-2xl tracking-tightest">Pro</h3>
                   <p className="mt-1 text-sm text-muted-foreground">For anyone with more than five subscriptions — and zero patience for silent price hikes</p>
                   <div className="mt-5 flex items-baseline gap-1.5">
-                    <span className="font-display text-5xl tracking-tightest">$7</span>
-                    <span className="text-sm text-muted-foreground">/ per month</span>
+                    <span className="font-display text-5xl tracking-tightest">₹599</span>
+                    <span className="text-sm text-muted-foreground">/month</span>
                   </div>
                 </div>
 
@@ -357,8 +357,8 @@ export default function PricingPage() {
                 <h3 className="mt-3 font-display text-2xl tracking-tightest">Family</h3>
                 <p className="mt-1 text-sm text-muted-foreground">Up to four linked people. Shared audit, individual leaks</p>
                 <div className="mt-5 flex items-baseline gap-1.5">
-                  <span className="font-display text-5xl tracking-tightest">$19</span>
-                  <span className="text-sm text-muted-foreground">/ per month</span>
+                  <span className="font-display text-5xl tracking-tightest">₹1,599</span>
+                  <span className="text-sm text-muted-foreground">/month</span>
                 </div>
               </div>
               <Link

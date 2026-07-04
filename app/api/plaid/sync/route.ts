@@ -3,6 +3,12 @@ import { getTransactions } from "@/lib/plaid";
 import prisma from "@/lib/prisma";
 import { getServerSession } from "@/lib/auth";
 import { detectSubscriptions } from "@/lib/subscription-detector";
+import {
+  BILLING_SUBSCRIPTION_FILTER,
+  FREE_SUBSCRIPTION_LIMIT,
+  isProPlan,
+  normalizeFrequency,
+} from "@/lib/subscription-utils";
 import { subDays, format } from "date-fns";
 
 export async function POST(request: NextRequest) {
@@ -14,7 +20,11 @@ export async function POST(request: NextRequest) {
 
     const userId = session.user.id;
 
-    // Get all user Plaid accounts
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { plan: true },
+    });
+
     const plaidAccounts = await prisma.plaidAccount.findMany({
       where: { userId },
     });
@@ -26,78 +36,123 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: Implement rate limiting to prevent excessive Plaid API calls
-    // For example, restrict to max 1 sync per hour per user.
-    // In production, consider using a Redis-based rate limiter or Vercel Edge Middleware.
-
     const endDate = format(new Date(), "yyyy-MM-dd");
     const startDate = format(subDays(new Date(), 365), "yyyy-MM-dd");
 
     let totalTransactions = 0;
-    let detectedSubscriptions: any[] = [];
+    let detectedSubscriptions: Awaited<ReturnType<typeof detectSubscriptions>> = [];
 
     for (const plaidAccount of plaidAccounts) {
-      // Fetch transactions from Plaid
       const plaidTransactions = await getTransactions(
         plaidAccount.plaidAccessToken,
         startDate,
         endDate
       );
 
-      // Store transactions in database
-      for (const txn of plaidTransactions) {
-        try {
-          await prisma.transaction.upsert({
-            where: { plaidTransactionId: txn.transactionId },
-            update: {
-              amount: txn.amount,
-              date: new Date(txn.date),
-              name: txn.name,
-              category: txn.category,
-            },
-            create: {
-              id: crypto.randomUUID(),
-              userId,
-              accountId: plaidAccount.id,
-              amount: txn.amount,
-              date: new Date(txn.date),
-              name: txn.name,
-              category: txn.category,
-              plaidTransactionId: txn.transactionId,
-            },
-          });
-        } catch {
-          // Skip duplicates or errors
-        }
-      }
+      await Promise.all(
+        plaidTransactions.map((txn) =>
+          prisma.transaction
+            .upsert({
+              where: { plaidTransactionId: txn.transactionId },
+              update: {
+                amount: txn.amount,
+                date: new Date(txn.date),
+                name: txn.name,
+                category: txn.category,
+              },
+              create: {
+                id: crypto.randomUUID(),
+                userId,
+                accountId: plaidAccount.id,
+                plaidAccountId: plaidAccount.id,
+                amount: txn.amount,
+                date: new Date(txn.date),
+                name: txn.name,
+                category: txn.category,
+                plaidTransactionId: txn.transactionId,
+              },
+            })
+            .catch(() => null)
+        )
+      );
 
       totalTransactions += plaidTransactions.length;
 
-      // Run subscription detection on this account's transactions
       const subs = await detectSubscriptions(plaidTransactions, userId);
       detectedSubscriptions = detectedSubscriptions.concat(subs);
     }
 
-    // Upsert detected subscriptions
-    let subscriptionsCreated = 0;
+    // Deduplicate by merchant name — keep highest-confidence match
+    const byName = new Map<string, (typeof detectedSubscriptions)[0]>();
     for (const sub of detectedSubscriptions) {
-      try {
-        await prisma.subscription.upsert({
-          where: {
-            plaidTransactionId: sub.plaidTransactionId,
-          },
-          update: {
+      const key = sub.name.toLowerCase();
+      if (!byName.has(key)) byName.set(key, sub);
+    }
+    detectedSubscriptions = Array.from(byName.values());
+
+    let subscriptionsCreated = 0;
+    let priceChangesDetected = 0;
+
+    const existingCount = await prisma.subscription.count({
+      where: { userId, status: "active", ...BILLING_SUBSCRIPTION_FILTER },
+    });
+
+    for (const sub of detectedSubscriptions) {
+      const frequency = normalizeFrequency(sub.frequency);
+
+      const existing = await prisma.subscription.findFirst({
+        where: {
+          userId,
+          ...BILLING_SUBSCRIPTION_FILTER,
+          OR: [
+            { plaidTransactionId: sub.plaidTransactionId },
+            { name: { equals: sub.name, mode: "insensitive" } },
+          ],
+        },
+      });
+
+      if (existing) {
+        const amountChanged =
+          Math.abs(existing.amount - sub.amount) / existing.amount > 0.05;
+
+        if (amountChanged) {
+          await prisma.priceChange.create({
+            data: {
+              id: crypto.randomUUID(),
+              subscriptionId: existing.id,
+              oldAmount: existing.amount,
+              newAmount: sub.amount,
+            },
+          });
+          priceChangesDetected++;
+        }
+
+        await prisma.subscription.update({
+          where: { id: existing.id },
+          data: {
             amount: sub.amount,
+            frequency,
             lastChargeDate: sub.lastChargeDate,
             nextChargeDate: sub.nextChargeDate,
             status: "active",
+            updatedAt: new Date(),
           },
-          create: {
+        });
+        continue;
+      }
+
+      if (!isProPlan(user?.plan) && existingCount + subscriptionsCreated >= FREE_SUBSCRIPTION_LIMIT) {
+        continue;
+      }
+
+      try {
+        await prisma.subscription.create({
+          data: {
             id: crypto.randomUUID(),
             userId,
             name: sub.name,
             amount: sub.amount,
-            frequency: sub.frequency,
+            frequency,
             category: sub.category,
             lastChargeDate: sub.lastChargeDate,
             nextChargeDate: sub.nextChargeDate,
@@ -116,12 +171,11 @@ export async function POST(request: NextRequest) {
       success: true,
       transactionsSynced: totalTransactions,
       subscriptionsDetected: subscriptionsCreated,
+      priceChangesDetected,
     });
-  } catch (error: any) {
-    console.error("Error syncing transactions:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to sync transactions" },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to sync transactions";
+    console.error("Error syncing transactions:", message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

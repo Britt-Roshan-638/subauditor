@@ -77,7 +77,7 @@ export async function detectSubscriptions(
     let frequency = 'unknown';
     if (avgInterval >= 25 && avgInterval <= 35) frequency = 'monthly';
     else if (avgInterval >= 6 && avgInterval <= 8) frequency = 'weekly';
-    else if (avgInterval >= 350 && avgInterval <= 380) frequency = 'yearly';
+    else if (avgInterval >= 350 && avgInterval <= 380) frequency = 'annual';
     else continue; // Not a regular pattern — skip
 
     const lastTxn = txns[txns.length - 1];
@@ -91,7 +91,7 @@ export async function detectSubscriptions(
     } else if (frequency === 'weekly') {
       nextChargeDate = new Date(lastChargeDate);
       nextChargeDate.setDate(nextChargeDate.getDate() + 7);
-    } else if (frequency === 'yearly') {
+    } else if (frequency === 'annual') {
       nextChargeDate = new Date(lastChargeDate);
       nextChargeDate.setFullYear(nextChargeDate.getFullYear() + 1);
     }
