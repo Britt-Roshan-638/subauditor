@@ -1,246 +1,107 @@
 # CodeRabbit Configuration — SubAuditor
-# Docs: https://docs.coderabbit.ai/guides/configure-coderabbit
+# Docs: https://docs.coderabbit.ai/reference/configuration
+# Schema: https://coderabbit.ai/integrations/schema.v2.json
 
 language: "en-US"
 early_access: false
-review:
-  # Show progress comments as the review runs
-  show_progress: true
-  # Post a summary comment on each PR
-  summary: true
-  # Automatically request changes for blocking issues
-  request_changes: true
-  # When to trigger auto-review
+
+reviews:
+  profile: "assertive"
+  request_changes_workflow: true
+  high_level_summary: true
+  review_status: true
+  review_details: true
+  commit_status: true
+  collapse_walkthrough: true
+  changed_files_summary: true
+  sequence_diagrams: true
+  estimate_code_review_effort: true
+  poem: false
+  suggested_labels: true
+  auto_apply_labels: false
+
+  # Skip auto-generated / noise files
+  path_filters:
+    - "!package-lock.json"
+    - "!yarn.lock"
+    - "!pnpm-lock.yaml"
+    - "!**/*.snap"
+    - "!prisma/migrations/**"
+
+  # Project-specific instructions per area of the codebase
+  path_instructions:
+    - path: "**/*.{ts,tsx}"
+      instructions: |
+        This is a Next.js 14 App Router project with TypeScript (strict mode).
+        - Path alias `@/*` maps to the project root.
+        - Use `"use client"` / `"use server"` directives correctly.
+        - Avoid `any` — prefer `unknown` with narrowing or a proper interface.
+        - Server-only env vars use `process.env.*`; client-exposed vars must be
+          prefixed `NEXT_PUBLIC_`.
+    - path: "prisma/schema.prisma"
+      instructions: |
+        Prisma ORM connected to PostgreSQL (serverless via directUrl).
+        - Use the singleton from `@/lib/prisma` — never `new PrismaClient()`.
+        - Model naming: PascalCase, singular.
+        - All tables need `@@index` on frequently-queried columns.
+    - path: "app/api/**"
+      instructions: |
+        Next.js Route Handlers (App Router).
+        - All routes must wrap logic in try/catch and return structured error
+          responses with proper status codes.
+        - Auth checks via `getServerSession(authOptions)` from `@/lib/auth`.
+        - Do not fetch `/api/auth/me` — use `useSession()` on the client or
+          `getServerSession()` on the server.
+    - path: "components/**/*.tsx"
+      instructions: |
+        UI components use Tailwind CSS with custom design tokens:
+        `--violet`, `--violet-dim`, `--violet-glow`.
+        - Client components use framer-motion v12 for animations.
+        - Prefer `cva()` from class-variance-authority for variant props.
+        - Use `cn()` from `@/lib/utils` to merge Tailwind classes.
+    - path: "middleware.ts"
+      instructions: |
+        NextAuth middleware with `withAuth`.
+        - The matcher excludes public routes: homepage, /login, /register,
+          /pricing, /onboarding, /api/auth, /api/webhooks, static files.
+    - path: "*.test.{ts,tsx}"
+      instructions: |
+        Jest unit/integration tests.
+        - Mock Prisma via `@/lib/__mocks__/prisma` if it exists.
+        - Test API routes by calling the handler directly.
+    - path: "tests/**"
+      instructions: |
+        Playwright E2E tests.
+        - Smoke tests live in `tests/smoke.spec.ts`.
+        - Page objects / fixtures go in `tests/fixtures/`.
+
   auto_review:
     enabled: true
     drafts: false
     base_branches:
       - "main"
       - "master"
-      - "dev"
-  # High-level instructions for every review
-  high_level_summary: true
-  # Label the PR based on change type
-  label: true
-  # Path-based filters — skip common noise
-  path_filters:
-    # Exclude auto-generated / lock files
-    - "!package-lock.json"
-    - "!yarn.lock"
-    - "!pnpm-lock.yaml"
-    - "!**/*.snap"
-    # Exclude Prisma migrations (auto-generated)
-    - "!prisma/migrations/**"
-  # Assign the author as the reviewer so they see the feedback inline
-  assign_reviewer: false
-  # Finish review even if there are errors
-  finish_review_on_error: false
-  # Only start reviewing after all checks pass (optional — keep false for speed)
-  wait_for_checks: false
-  # Do not mark resolved threads as outdated
-  dismiss_approved_reviews: false
+    auto_incremental_review: true
+    auto_pause_after_reviewed_commits: 5
 
-# Chat commands and interactive features
+  tools:
+    markdownlint:
+      enabled: true
+    eslint:
+      enabled: true
+    gitleaks:
+      enabled: true
+    prismaLint:
+      enabled: true
+
 chat:
   auto_reply: true
-  # Auto-respond when a PR author comments
-  auto_respond:
-    enabled: true
 
-# Quality gate thresholds
-quality_gate:
-  ignore_small_files: true
-  small_file_lines: 20
-  # Automatically improve code when issues are found
-  apply_suggestions:
-    mode: "warn"
-    # Suggest fixes inline
-    inline_suggestions: true
-
-# Tools configuration per category
-tools:
-  # Markdown linting (for docs / README)
-  markdown:
-    enabled: true
-    checks:
-      - "heading-levels"
-      - "broken-links"
-      - "list-formatting"
-
-  # Secret / credential scanning
-  secrets:
-    enabled: true
-    exclude:
-      - "*.test.ts"
-      - "*.test.tsx"
-      - "*.spec.ts"
-      - "*.stories.tsx"
-
-  # Spell check
-  spellcheck:
-    enabled: true
-    # Domain-specific words to allow
-    allowed_words:
-      - "SubAuditor"
-      - "Razorpay"
-      - "Plaid"
-      - "Geist"
-      - "Vercel"
-      - "Prisma"
-      - "authjs"
-      - "nextauth"
-      - "lucide"
-      - "tailwindcss"
-      - "framer"
-      - "threejs"
-      - "reactthree"
-      - "postprocessing"
-      - "zod"
-      - "classvarianceauthority"
-      - "clsx"
-      - "datefns"
-      - "sentry"
-      - "dsn"
-      - "otel"
-      - "openai"
-      - "anyscale"
-      - "octokit"
-      - "supabase"
-      - "stitch"
-      - "plaid"
-      - "onboarding"
-      - "finessed"
-      - "unsubsidized"
-      - "nonce"
-      - "servercomponent"
-      - "clientcomponent"
-
-  # Code formatting checks
-  formatting:
-    enabled: true
-    language_options:
-      typescript:
-        line_length: 100
-        quote_style: "double"
-        semicolons: true
-      javascript:
-        line_length: 100
-        quote_style: "double"
-        semicolons: true
-      prisma:
-        line_length: 100
-
-# Custom review instructions tuned to this project's stack
-reviews:
-  behavior:
-    # How detailed the review should be (1-5)
-    detail_level: 4
-    # Focus areas for the AI reviewer
-    focus_areas:
-      - "security"
-      - "correctness"
-      - "performance"
-      - "maintainability"
-      - "typescript-best-practices"
-  # Framework / runtime context for the reviewer
-  context:
-    - "Next.js 14 App Router with TypeScript (strict mode)"
-    - "Prisma ORM connected to PostgreSQL (planetscale/serverless-compatible)"
-    - "NextAuth v4 for authentication with credentials + adapter pattern"
-    - "Razorpay for payment processing and subscription management"
-    - "Plaid Link for bank account sync"
-    - "Tailwind CSS with custom design tokens (--violet, --violet-dim, --violet-glow)"
-    - "Path alias: @/* maps to project root"
-    - "Testing: Jest for unit/integration, Playwright for E2E"
-    - "Three.js / @react-three/fiber for 3D visuals (HeroScene)"
-    - "Sentry via instrumentation.ts/instrumentation-client.ts"
-    - "Zod for runtime validation"
-    - "framer-motion v12 for animations"
-
-# Knowledge base for the project — gives CodeRabbit deeper context
 knowledge_base:
-  # Auto-learn from PR descriptions and comments
-  learning: true
-  # Index the codebase for contextual understanding
-  indexing: true
-  # Paths to ignore during indexing
-  ignore_paths:
-    - "node_modules"
-    - ".next"
-    - "public"
-    - "prisma/migrations"
-  # What to index
-  topics:
-    - "architecture"
-    - "database-schema"
-    - "authentication-flow"
-    - "payment-flow"
-    - "api-routes"
-    - "component-library"
-
-# Custom patterns to watch for — project-specific gotchas
-patterns:
-  - pattern: "new PrismaClient\\(\\)"
-    severity: "error"
-    message: >
-      Do NOT instantiate `new PrismaClient()` in route handlers or
-      components. Use the global singleton from `@/lib/prisma` instead.
-      Each new instance exhausts database connections.
-  - pattern: "process\\.env\\.(?!NEXT_PUBLIC_)"
-    severity: "warning"
-    message: >
-      Server-side env var (`process.env.*`) used in a potentially exposed
-      context. Ensure this is server-only (\"use server\" or API route).
-      Public env vars must be prefixed `NEXT_PUBLIC_`.
-  - pattern: "fetch\\(['\"]/api/auth/me['\"]"
-    severity: "error"
-    message: >
-      Use `useSession()` from next-auth/react instead of manually fetching
-      `/api/auth/me`. The session context is already provided by AuthProvider
-      and avoids an extra network round-trip.
-  - pattern: '"use client".*import.* from "next/server"'
-    severity: "error"
-    message: >
-      Do not import `next/server` in a Client Component. It only works in
-      Server Components and Route Handlers.
-  - pattern: "prefetch=\\{true.*\\}"
-    severity: "warning"
-    message: >
-      Only use `prefetch={true}` on links the user is very likely to click
-      next (e.g. login → register). Overusing it wastes bandwidth for
-      routes the user may never navigate to.
-  - pattern: "@prisma/client"
-    severity: "info"
-    message: >
-      Ensure Prisma client is imported from `@/lib/prisma` (the singleton),
-      not directly from `@prisma/client` in route handlers.
-  - pattern: "any"
-    severity: "warning"
-    message: >
-      Avoid `any` type — prefer `unknown` with type narrowing, or a proper
-      interface. `any` disables TypeScript's safety net.
-
-# Mark PRs with labels based on change characteristics
-labels:
-  default:
-    - "🤖 coderabbit"
-  categories:
-    - match: "prisma/schema.prisma|prisma/migrations/"
-      labels:
-        - "database"
-        - "schema-change"
-    - match: "**/api/**"
-      labels:
-        - "api"
-    - match: "components/**"
-      labels:
-        - "ui"
-    - match: "*.test.*|*.spec.*|e2e/**"
-      labels:
-        - "tests"
-    - match: "**/landing/**"
-      labels:
-        - "landing-page"
-    - match: "middleware.ts|next.config.*"
-      labels:
-        - "config"
+  opt_out: false
+  web_search:
+    enabled: false
+  learnings:
+    scope: "auto"
+  pull_requests:
+    scope: "auto"
