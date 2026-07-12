@@ -110,7 +110,7 @@ function LoginForm() {
 
       <p className="text-sm text-center text-muted-foreground">
         New auditor?{" "}
-        <Link href="/register" className="text-primary hover:text-violet-glow">
+        <Link href="/register" prefetch={true} className="text-primary hover:text-violet-glow">
           Create account
         </Link>
       </p>

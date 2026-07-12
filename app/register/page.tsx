@@ -190,7 +190,7 @@ function RegisterForm() {
 
         <p className="text-sm text-center text-muted-foreground">
           Already an auditor?{" "}
-          <Link href="/login" className="text-primary hover:text-violet-glow">
+          <Link href="/login" prefetch={true} className="text-primary hover:text-violet-glow">
             Sign in
           </Link>
         </p>

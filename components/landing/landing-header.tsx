@@ -107,12 +107,12 @@ export function LandingHeader() {
             </DropdownMenu>
           ) : (
             <>
-              <Link href="/login">
+              <Link href="/login" prefetch={true}>
                 <Button variant="ghost" size="sm" className="text-foreground/80">
                   Log in
                 </Button>
               </Link>
-              <Link href="/register">
+              <Link href="/register" prefetch={true}>
                 <Button
                   size="sm"
                   className="gap-1.5 bg-gradient-to-br from-violet to-violet-dim text-primary-foreground hover:opacity-95"

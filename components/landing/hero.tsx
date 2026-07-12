@@ -2,7 +2,7 @@
 
 // components/landing/hero.tsx — asymmetric hero with full Three.js stage + scroll-driven reveal.
 
-import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -33,16 +33,8 @@ const fade = {
 };
 
 export function Hero() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/auth/me")
-      .then((r) => r.ok && r.json())
-      .then((d) => setIsLoggedIn(!!d?.user))
-      .catch(() => setIsLoggedIn(false))
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: session, status } = useSession();
+  const isLoggedIn = status === "authenticated";
 
   return (
     <section className="relative isolate overflow-hidden pt-28 pb-24 sm:pt-36 sm:pb-32">
@@ -101,7 +93,7 @@ export function Hero() {
             custom={3}
             className="mt-9 flex flex-col sm:flex-row items-center gap-3 sm:gap-4"
           >
-            {!loading && isLoggedIn ? (
+            {isLoggedIn ? (
               <Link href="/dashboard" className="w-full sm:w-auto">
                 <Button
                   size="lg"
@@ -113,7 +105,7 @@ export function Hero() {
                 </Button>
               </Link>
             ) : (
-              <Link href="/register" className="w-full sm:w-auto">
+              <Link href="/register" prefetch={true} className="w-full sm:w-auto">
                 <Button
                   size="lg"
                   className="group h-12 w-full px-7 text-base gap-2 sm:w-auto bg-gradient-to-br from-violet to-violet-dim text-primary-foreground shadow-[0_18px_60px_-12px_rgba(167,139,250,0.5)] hover:shadow-[0_18px_60px_-6px_rgba(167,139,250,0.7)] transition-shadow"

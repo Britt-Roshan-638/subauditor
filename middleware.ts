@@ -47,12 +47,12 @@ export default withAuth(
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for:
-     * - _next/static (static files)
-     * - _next/image (image optimization)
-     * - favicon.ico
-     * - api/auth (NextAuth routes — must be public for sign-in flow)
+     * Match all request paths EXCEPT:
+     * - / (homepage — loads directly, no auth gate)
+     * - _next/static, _next/image, favicon.ico
+     * - api/auth, api/webhooks (NextAuth / payment hooks)
+     * - Public auth pages (login, register, pricing, onboarding)
      */
-    '/((?!_next/static|_next/image|favicon.ico|api/auth|api/webhooks|login|register|pricing|onboarding|$).*)',
+    '/((?!$|_next/static|_next/image|favicon.ico|api/auth|api/webhooks|login|register|pricing|onboarding).+)',
   ],
 };

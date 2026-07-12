@@ -3,11 +3,11 @@
 // components/landing/pricing-section.tsx — inline 3-column pricing with Pro highlight.
 // Checks auth so logged-in users go to /dashboard instead of /register.
 
-import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { Check, Sparkles, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSession } from "next-auth/react";
 
 const plans = [
   {
@@ -83,16 +83,9 @@ const card = {
 };
 
 export function PricingSection() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/auth/me")
-      .then((r) => r.ok && r.json())
-      .then((d) => setIsLoggedIn(!!d?.user))
-      .catch(() => setIsLoggedIn(false))
-      .finally(() => setLoading(false));
-  }, []);
+  const { status } = useSession();
+  const isLoggedIn = status === "authenticated";
+  const loading = status === "loading";
 
   return (
     <section id="pricing" className="relative py-32 sm:py-40">

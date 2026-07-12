@@ -1,22 +1,15 @@
 // components/landing/final-cta.tsx — auth-aware bottom CTA for the landing page.
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSession } from "next-auth/react";
 
 export function FinalCta() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/auth/me")
-      .then((r) => r.ok && r.json())
-      .then((d) => setIsLoggedIn(!!d?.user))
-      .catch(() => setIsLoggedIn(false))
-      .finally(() => setLoading(false));
-  }, []);
+  const { status } = useSession();
+  const isLoggedIn = status === "authenticated";
+  const loading = status === "loading";
 
   return (
     <section className="relative py-32 sm:py-40">
